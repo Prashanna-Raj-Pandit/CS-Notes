@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}{{ subtopic.title }} - Study Hub{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/">Home</a> /
+            <a href="/topic/{{ topic_id }}">{{ topic.name }}</a> /
+            <span>{{ subtopic.title }}</span>
+        </div>
+        <h1 class="content-title">{{ subtopic.title }}</h1>
+    </div>
+</div>
+
+<div class="container">
+    <div class="content-body">
+        <div class="content-placeholder">
+            <div class="placeholder-icon">📝</div>
+            <h2>Content Coming Soon!</h2>
+            <p>This is where you'll add your study material for <strong>{{ subtopic.title }}</strong></p>
+            <div class="placeholder-instructions">
+                <h3>To add content:</h3>
+                <ol>
+                    <li>Create a new HTML file for this topic</li>
+                    <li>Add your study material with text, code, images, and examples</li>
+                    <li>Link it in the Flask route</li>
+                </ol>
+            </div>
+
+            {% if subtopic.id == 'reduce-lr-plateau' %}
+            <div class="special-content">
+                <h3>ReduceLROnPlateau Example</h3>
+                <p>You can embed your interactive plateau explanation here!</p>
+                <a href="#" class="btn-primary">View Interactive Demo</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

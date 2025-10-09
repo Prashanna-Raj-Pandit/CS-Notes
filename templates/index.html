@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!--<div class="hero">-->
+<!--    <div class="container">-->
+<!--        <h1 class="hero-title">Welcome to Your Study Hub 🎓</h1>-->
+<!--        <p class="hero-subtitle">Master Data Science, Machine Learning, and Programming</p>-->
+<!--    </div>-->
+<!--</div>-->
+
+<div class="container">
+    <div class="topics-grid">
+        {% for topic_id, topic in topics.items() %}
+        <a href="/topic/{{ topic_id }}" class="topic-card" style="--topic-color: {{ topic.color }}">
+            <div class="topic-icon">{{ topic.icon }}</div>
+            <h3 class="topic-title">{{ topic.name }}</h3>
+            <p class="topic-count">{{ topic.subtopics|length }} topics</p>
+            <div class="topic-arrow">→</div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}{{ topic.name }} - Study Hub{% endblock %}
+
+{% block content %}
+<div class="topic-header" style="background: linear-gradient(135deg, {{ topic.color }}, {{ topic.color }}dd);">
+    <div class="container">
+        <a href="/" class="back-link">← Back to Home</a>
+        <h1 class="topic-header-title">{{ topic.icon }} {{ topic.name }}</h1>
+        <p class="topic-header-subtitle">{{ topic.subtopics|length }} subtopics to explore</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="subtopics-list">
+        {% for subtopic in topic.subtopics %}
+        <a href="/content/{{ topic_id }}/{{ subtopic.id }}" class="subtopic-card">
+            <div class="subtopic-number">{{ loop.index }}</div>
+            <div class="subtopic-info">
+                <h3 class="subtopic-title">{{ subtopic.title }}</h3>
+                <p class="subtopic-description">{{ subtopic.description }}</p>
+            </div>
+            <div class="subtopic-arrow">→</div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
