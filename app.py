@@ -98,7 +98,7 @@ TOPICS = {
 
 @app.route('/')
 def index():
-    return "Hello world"
+    return render_template("index.html",topics=TOPICS)
 
 
 @app.route('/topic/<topic_id>')
