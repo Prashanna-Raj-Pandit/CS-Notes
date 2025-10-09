@@ -114,6 +114,9 @@ def content_detail(topic_id, subtopic_id):
         topic = TOPICS[topic_id]
         subtopic = next((s for s in topic['subtopics'] if s['id'] == subtopic_id), None)
         if subtopic:
+            # Check if this is the reduce-lr-plateau topic
+            if subtopic_id == 'reduce-lr-plateau':
+                return render_template('reduce_lr_plateau.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
     return "Content not found", 404
 
@@ -137,3 +140,4 @@ def search():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
