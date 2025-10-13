@@ -42,7 +42,9 @@ TOPICS = {
         'color': '#4facfe',
         'subtopics': [
             {'id': 'neural-networks', 'title': 'Neural Networks Basics',
-             'description': 'Perceptrons, activation functions'},
+             'description': 'Perceptrons, activation functions, backpropagation'},
+            {'id':'optimizers','title':'Optimizers',
+             'description':'Different types of optimizers'},
             {'id': 'cnn', 'title': 'Convolutional Neural Networks',
              'description': 'Image processing and computer vision'},
             {'id': 'rnn-lstm', 'title': 'RNN & LSTM', 'description': 'Sequential data and time series'},
@@ -98,7 +100,7 @@ TOPICS = {
 
 @app.route('/')
 def index():
-    return render_template("index.html",topics=TOPICS)
+    return render_template("index.html", topics=TOPICS)
 
 
 @app.route('/topic/<topic_id>')
@@ -117,6 +119,10 @@ def content_detail(topic_id, subtopic_id):
             # Check if this is the reduce-lr-plateau topic
             if subtopic_id == 'reduce-lr-plateau':
                 return render_template('reduce_lr_plateau.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
+            elif subtopic_id == 'neural-networks':
+                return render_template('neural-networks.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
+            elif subtopic_id=='optimizers':
+                return render_template('optimizers.html',topic=topic,subtopic=subtopic,topic_id=topic_id)
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
     return "Content not found", 404
 
@@ -140,4 +146,3 @@ def search():
 
 if __name__ == '__main__':
     app.run()
-

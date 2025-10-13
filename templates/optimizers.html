@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Optimizers — Visual & Mathematical Guide</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#7c3aed; --accent-2:#06b6d4; --glass: rgba(255,255,255,0.03);
+      --mono: 'Courier New', monospace;
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071124 0%, #071827 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; color:#e6eef6}
+    .app{max-width:1100px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;gap:16px}
+    h1{margin:0;font-size:20px}
+    p.lead{color:var(--muted);margin-top:4px}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:18px}
+    .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 24px rgba(2,6,23,0.6);}
+    .controls{display:flex;flex-direction:column;gap:10px}
+    label{font-size:13px;color:var(--muted)}
+    select,input[type=range],input[type=number]{width:100%;margin-top:6px;background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;color:inherit}
+    .buttons{display:flex;gap:8px;margin-top:8px}
+    button{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:none;color:white;padding:8px 10px;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .vis{background:linear-gradient(180deg, rgba(12,16,24,0.5), rgba(6,10,18,0.5));border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+    canvas{width:100%;height:420px;border-radius:8px;background:linear-gradient(180deg,#041226,#071526)}
+    .legend{display:flex;gap:8px;flex-wrap:wrap}
+    .legend .item{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+    .dot{width:14px;height:8px;border-radius:6px}
+    pre{background:rgba(255,255,255,0.02);padding:12px;border-radius:8px;overflow:auto;font-family:var(--mono);font-size:13px}
+    .section{margin-top:18px}
+    .math{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:10px;border-radius:8px}
+    footer{color:var(--muted);font-size:13px;margin-top:14px}
+    a.inline{color:var(--accent);text-decoration:none}
+    .row{display:flex;gap:8px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:700">OP</div>
+      <div>
+        <h1>Optimizers — visual, mathematical & logical guide</h1>
+        <p class="lead">Interactive demo + concise math for common optimizers: SGD, Momentum, Nesterov, Adagrad, RMSProp, Adam. Tweak params and watch trajectories on a 2D loss surface.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Controls</h3>
+        <div class="controls">
+          <label>Optimizer
+            <select id="opt">
+              <option>SGD</option>
+              <option>Momentum</option>
+              <option>Nesterov</option>
+              <option>Adagrad</option>
+              <option>RMSProp</option>
+              <option>Adam</option>
+            </select>
+          </label>
+
+          <label>Learning rate (η)
+            <input id="lr" type="number" step="0.001" min="0.0001" max="1" value="0.05">
+          </label>
+
+          <label>Momentum μ (for Momentum/Nesterov)
+            <input id="mu" type="number" step="0.01" min="0" max="0.999" value="0.9">
+          </label>
+
+          <label>β1 (Adam) &nbsp;&nbsp;β2 (Adam)
+            <div class="row">
+              <input id="b1" type="number" step="0.001" min="0.0" max="0.999" value="0.9">
+              <input id="b2" type="number" step="0.001" min="0.0" max="0.9999" value="0.999">
+            </div>
+          </label>
+
+          <label>ε (stability)
+            <input id="eps" type="number" step="1e-6" min="1e-9" max="1e-2" value="1e-8">
+          </label>
+
+          <div class="row buttons">
+            <button id="run">Run</button>
+            <button id="step" class="ghost">Step</button>
+            <button id="reset" class="ghost">Reset</button>
+            <button id="randomize" class="ghost">Random init</button>
+          </div>
+
+          <div style="margin-top:8px; color:var(--muted);font-size:13px">Status: <span id="status">idle</span></div>
+        </div>
+
+        <div class="section">
+          <h4>Quick math cheatsheet</h4>
+          <div class="math">
+            <strong>SGD</strong>: \(\theta_{t+1} = \theta_t - \eta \nabla f(\theta_t)\)<br><br>
+            <strong>Momentum</strong>: \(v_t = \mu v_{t-1} - \eta \nabla f(\theta_t)\), \(\theta_{t+1} = \theta_t + v_t\)<br><br>
+            <strong>Nesterov</strong>: lookahead gradient at \(\theta_t + \mu v_{t-1}\): \(v_t = \mu v_{t-1} - \eta \nabla f(\theta_t + \mu v_{t-1})\)
+            <br><br>
+            <strong>Adagrad</strong>: accumulate squared grads: \(G_t = G_{t-1} + g_t^2\); \(\theta_{t+1} = \theta_t - \eta\, g_t / (\sqrt{G_t}+\epsilon)\)
+            <br><br>
+            <strong>RMSProp</strong>: moving average of squared grads: \(s_t = \beta s_{t-1} + (1-\beta) g_t^2\); \(\theta_{t+1} = \theta_t - \eta\, g_t / (\sqrt{s_t}+\epsilon)\)
+            <br><br>
+            <strong>Adam</strong>: \(m_t=\beta_1 m_{t-1}+(1-\beta_1)g_t\), \(v_t=\beta_2 v_{t-1}+(1-\beta_2)g_t^2\), bias-corrected \(\hat m_t,\hat v_t\); \(\theta_{t+1}=\theta_t-\eta\,\hat m_t/(\sqrt{\hat v_t}+\epsilon)\)
+          </div>
+        </div>
+
+        <div class="section">
+          <h4>Why different optimizers?</h4>
+          <p style="color:var(--muted);font-size:14px">Different optimizers handle noisy gradients, varying curvature, and sparse updates differently. Visual intuition: <em>SGD</em> moves straight down; <em>Momentum</em> smooths and accelerates along consistent directions; <em>Adaptive</em> methods (Adagrad/RMSProp/Adam) scale updates per-parameter based on past gradients.</p>
+        </div>
+
+      </div>
+
+      <div class="vis card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0">Loss surface & optimizer trajectories</h3>
+          <div class="legend" id="legend"></div>
+        </div>
+        <canvas id="c"></canvas>
+
+        <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
+          <div style="color:var(--muted)">Function: rotated quadratic<br>\(f(x,y)=ax^2+by^2+\text{cross-term}\)</div>
+          <div style="color:var(--muted);font-size:13px">Tip: try Adam vs SGD with higher learning rate to see differences</div>
+        </div>
+
+        <div class="section">
+          <h4>Detailed explanations</h4>
+          <p style="color:var(--muted)"><strong>SGD</strong> — simplest: follow negative gradient. Good for large datasets and online updates but noisy. <br>
+<strong>Momentum</strong> — maintains velocity vector to accelerate in consistent descent directions and damp oscillations in high curvature directions. <br>
+<strong>Nesterov</strong> — computes gradient at the "lookahead" position for a more informed update. <br>
+<strong>Adagrad</strong> — adapts per-parameter learning rates using sum of squares; useful for sparse data but may decay learning rates too much. <br>
+<strong>RMSProp</strong> — fixes Adagrad by using exponential moving average of squared grads. <br>
+<strong>Adam</strong> — combines Momentum (first moment) + RMSProp (second moment) with bias-correction; typically robust and fast.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card section">
+      <h3>Deep dive: math + logic (short)</h3>
+      <div style="display:flex;gap:18px">
+        <div style="flex:1">
+          <h4>Momentum intuition</h4>
+          <p style="color:var(--muted)">Momentum accumulates an exponentially decaying moving average of past gradients. It acts like a ball rolling down a valley — it keeps velocity where gradients are aligned and damps oscillations.</p>
+        </div>
+        <div style="flex:1">
+          <h4>Adaptive methods</h4>
+          <p style="color:var(--muted)">Adagrad/RMSProp/Adam change the step size per-parameter: parameters with frequently large gradients get smaller updates; rare parameters get larger ones. This helps with sparse features and ill-conditioned problems.</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <h4>Code: discrete updates (pseudocode)</h4>
+        <pre>
+# SGD
+theta -= lr * grad
+
+# Momentum
+v = mu * v - lr * grad
+theta += v
+
+# Nesterov
+look = theta + mu * v
+g = grad(look)
+v = mu*v - lr * g
+theta += v
+
+# RMSProp
+s = beta * s + (1-beta) * grad**2
+theta -= lr * grad / (sqrt(s) + eps)
+
+# Adam
+m = beta1*m + (1-beta1)*grad
+v = beta2*v + (1-beta2)*grad**2
+m_hat = m/(1-beta1**t)
+v_hat = v/(1-beta2**t)
+theta -= lr * m_hat / (sqrt(v_hat) + eps)
+        </pre>
+      </div>
+
+      <footer>Want a downloadable version or additional optimizers (AdamW, Nadam)? Click "Random init" then choose optimizer and Run. You can also tweak the loss surface inside the code.</footer>
+    </div>
+  </div>
+
+<script>
+// --- Simple 2D optimization simulator for visualization ---
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = canvas.clientWidth * devicePixelRatio;
+canvas.height = 420 * devicePixelRatio;
+ctx.scale(devicePixelRatio, devicePixelRatio);
+
+// UI
+const optSel = document.getElementById('opt');
+const lrIn = document.getElementById('lr');
+const muIn = document.getElementById('mu');
+const b1In = document.getElementById('b1');
+const b2In = document.getElementById('b2');
+const epsIn = document.getElementById('eps');
+const runBtn = document.getElementById('run');
+const stepBtn = document.getElementById('step');
+const resetBtn = document.getElementById('reset');
+const randBtn = document.getElementById('randomize');
+const status = document.getElementById('status');
+
+let running = false;
+let state = {};
+
+// Loss surface parameters (rotated quadratic)
+const A = [[3.0, 1.2],[1.2, 0.8]]; // symmetric positive-definite
+function loss(p){
+  const x=p[0], y=p[1];
+  return 0.5*(A[0][0]*x*x + 2*A[0][1]*x*y + A[1][1]*y*y);
+}
+function grad(p){
+  const x=p[0], y=p[1];
+  // grad = A * [x;y]
+  return [A[0][0]*x + A[0][1]*y, A[0][1]*x + A[1][1]*y];
+}
+
+function initState(){
+  state.theta = [2.4, -1.6];
+  state.v = [0,0];
+  state.s = [0,0];
+  state.m = [0,0];
+  state.vt = [0,0];
+  state.t = 0;
+  state.path = [state.theta.slice()];
+}
+initState();
+
+function step(){
+  const opt = optSel.value;
+  const lr = parseFloat(lrIn.value);
+  const mu = parseFloat(muIn.value);
+  const b1 = parseFloat(b1In.value);
+  const b2 = parseFloat(b2In.value);
+  const eps = parseFloat(epsIn.value);
+
+  state.t += 1;
+  const theta = state.theta;
+  const g = grad(theta);
+
+  if(opt==='SGD'){
+    theta[0] -= lr * g[0];
+    theta[1] -= lr * g[1];
+  }else if(opt==='Momentum'){
+    state.v[0] = mu*state.v[0] - lr*g[0];
+    state.v[1] = mu*state.v[1] - lr*g[1];
+    theta[0] += state.v[0]; theta[1] += state.v[1];
+  }else if(opt==='Nesterov'){
+    const look = [theta[0] + mu*state.v[0], theta[1] + mu*state.v[1]];
+    const g2 = grad(look);
+    state.v[0] = mu*state.v[0] - lr*g2[0];
+    state.v[1] = mu*state.v[1] - lr*g2[1];
+    theta[0] += state.v[0]; theta[1] += state.v[1];
+  }else if(opt==='Adagrad'){
+    state.s[0] += g[0]*g[0]; state.s[1] += g[1]*g[1];
+    theta[0] -= lr * g[0] / (Math.sqrt(state.s[0]) + eps);
+    theta[1] -= lr * g[1] / (Math.sqrt(state.s[1]) + eps);
+  }else if(opt==='RMSProp'){
+    const beta = 0.9;
+    state.s[0] = beta*state.s[0] + (1-beta)*g[0]*g[0];
+    state.s[1] = beta*state.s[1] + (1-beta)*g[1]*g[1];
+    theta[0] -= lr * g[0] / (Math.sqrt(state.s[0]) + eps);
+    theta[1] -= lr * g[1] / (Math.sqrt(state.s[1]) + eps);
+  }else if(opt==='Adam'){
+    state.m[0] = b1*state.m[0] + (1-b1)*g[0];
+    state.m[1] = b1*state.m[1] + (1-b1)*g[1];
+    state.vt[0] = b2*state.vt[0] + (1-b2)*g[0]*g[0];
+    state.vt[1] = b2*state.vt[1] + (1-b2)*g[1]*g[1];
+    const mhat0 = state.m[0]/(1-Math.pow(b1,state.t));
+    const mhat1 = state.m[1]/(1-Math.pow(b1,state.t));
+    const vhat0 = state.vt[0]/(1-Math.pow(b2,state.t));
+    const vhat1 = state.vt[1]/(1-Math.pow(b2,state.t));
+    theta[0] -= lr * mhat0 / (Math.sqrt(vhat0) + eps);
+    theta[1] -= lr * mhat1 / (Math.sqrt(vhat1) + eps);
+  }
+
+  state.path.push(theta.slice());
+}
+
+function draw(){
+  // clear
+  ctx.clearRect(0,0,canvas.clientWidth,420);
+  // draw contours
+  const W = canvas.clientWidth; const H = 420;
+  // map from [-3,3]x[-3,3] to canvas
+  function toPixel(p){
+    const x = (p[0]+3)/6 * W;
+    const y = (1-(p[1]+3)/6) * H;
+    return [x,y];
+  }
+
+  // contours: compute values on grid
+  const cols = 40, rows=40;
+  for(let i=0;i<=cols;i++){
+    for(let j=0;j<=rows;j++){
+      const x = -3 + 6*(i/cols);
+      const y = -3 + 6*(j/rows);
+      const v = loss([x,y]);
+      const px = (x+3)/6*W; const py=(1-(y+3)/6)*H;
+      const alpha = Math.min(0.9, Math.log(1+v*5));
+      ctx.fillStyle = `rgba(200,230,255,${0.01+0.02*Math.log(1+v)})`;
+      // draw faint grid of values - optional
+    }
+  }
+
+  // draw axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
+
+  // draw contour lines analytically (ellipses)
+  ctx.strokeStyle='rgba(255,255,255,0.06)';
+  for(let a=0.2;a<4;a+=0.3){
+    ctx.beginPath();
+    for(let t=0;t<=Math.PI*2+0.1;t+=0.04){
+      // param ellipse for level set x^T A x = c
+      // compute points by diagonalizing A (approx)
+      const c=a;
+      // naive: sample x,y in circle and transform
+      const u = Math.cos(t), v= Math.sin(t);
+      // scale circle by sqrt(c)
+      let X = [u*Math.sqrt(c), v*Math.sqrt(c)];
+      // solve A^{-1/2} * X? simplify by using identity: apply small rotation
+      // use a simple affine transform to make ellipse: x = [1.2 0.6;0 0.9] * X
+      const px = 1.2*X[0] + 0.6*X[1];
+      const py = 0*X[0] + 0.9*X[1];
+      const ppx = toPixel([px,py]);
+      if(t===0) ctx.moveTo(ppx[0],ppx[1]); else ctx.lineTo(ppx[0],ppx[1]);
+    }
+    ctx.closePath(); ctx.stroke();
+  }
+
+  // draw path
+  ctx.lineWidth=2;
+  const path = state.path;
+  ctx.beginPath();
+  for(let i=0;i<path.length;i++){
+    const px = toPixel(path[i])[0]; const py = toPixel(path[i])[1];
+    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.strokeStyle = 'rgba(124,58,237,0.95)'; ctx.stroke();
+
+  // draw current point
+  const cur = path[path.length-1];
+  const cpx = toPixel(cur);
+  ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(cpx[0],cpx[1],6,0,Math.PI*2); ctx.fill();
+
+  // labels
+  ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.font='12px sans-serif';
+  ctx.fillText(`x=${cur[0].toFixed(3)}`, 10, 18);
+  ctx.fillText(`y=${cur[1].toFixed(3)}`, 10, 34);
+  ctx.fillText(`loss=${loss(cur).toFixed(4)}`, 10, 50);
+}
+
+let raf;
+function loop(){
+  if(running){
+    for(let k=0;k<3;k++) step(); // advance a few steps per frame
+    draw();
+    raf = requestAnimationFrame(loop);
+  }
+}
+
+draw();
+
+runBtn.onclick = ()=>{
+  running = !running;
+  runBtn.textContent = running? 'Pause':'Run';
+  status.textContent = running? 'running':'idle';
+  if(running) loop(); else cancelAnimationFrame(raf);
+}
+
+stepBtn.onclick = ()=>{ step(); draw(); }
+resetBtn.onclick = ()=>{ initState(); draw(); }
+randBtn.onclick = ()=>{ state.theta = [ (Math.random()*2-1)*3, (Math.random()*2-1)*3 ]; state.path=[state.theta.slice()]; draw(); }
+
+// show legend
+const legend = document.getElementById('legend');
+legend.innerHTML = `<div class="item"><div class="dot" style="background:linear-gradient(90deg,#7c3aed,#06b6d4)"></div> trajectory</div>`;
+
+// math rendering: attempt to use MathJax if present
+(function(){
+  if(window.MathJax){ MathJax.typesetPromise(); }
+})();
+</script>
+
+<!-- MathJax for rendering math (requires internet access) -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>

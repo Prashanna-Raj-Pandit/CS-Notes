@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Architecture: Complete Mathematical Walkthrough</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin: 30px 0 15px 0;
+        }
+
+        h4 {
+            color: #555;
+            font-size: 1.2em;
+            margin: 20px 0 10px 0;
+        }
+
+        p {
+            margin: 15px 0;
+            text-align: justify;
+        }
+
+        .architecture-overview {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 30px;
+            border-radius: 10px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .nn-diagram {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .nn-svg {
+            width: 100%;
+            max-width: 900px;
+            height: auto;
+        }
+
+        .formula-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .code-block .keyword {
+            color: #ff79c6;
+        }
+
+        .code-block .function {
+            color: #50fa7b;
+        }
+
+        .code-block .comment {
+            color: #6272a4;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        tr:hover {
+            background: #e9ecef;
+            transition: background 0.3s ease;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .matrix {
+            display: inline-block;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            font-family: 'Courier New', monospace;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            line-height: 35px;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .flow-arrow {
+            text-align: center;
+            font-size: 2em;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        footer {
+            background: #2d2d2d;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+        }
+
+        .toc {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 30px 0;
+        }
+
+        .toc h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .toc li {
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .toc li:last-child {
+            border-bottom: none;
+        }
+
+        .toc a {
+            color: #495057;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .toc a:hover {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 Neural Network Architecture</h1>
+            <p>Complete Mathematical & Code Walkthrough for ASD Classification</p>
+        </header>
+
+        <div class="content">
+            <!-- Table of Contents -->
+            <div class="toc">
+                <h3>📋 Table of Contents</h3>
+                <ul>
+                    <li><a href="#overview">1. Network Architecture Overview</a></li>
+                    <li><a href="#initialization">2. Initialization</a></li>
+                    <li><a href="#forward">3. Forward Pass</a></li>
+                    <li><a href="#loss">4. Loss Calculation</a></li>
+                    <li><a href="#backward">5. Backward Pass (Backpropagation)</a></li>
+                    <li><a href="#optimization">6. Optimization</a></li>
+                    <li><a href="#training">7. Training Loop</a></li>
+                    <li><a href="#summary">8. Summary</a></li>
+                </ul>
+            </div>
+
+            <!-- Section 1: Overview -->
+            <section id="overview">
+                <h2>1. Network Architecture Overview</h2>
+
+                <div class="architecture-overview">
+                    <h3>2-Layer Feedforward Network for Binary Classification</h3>
+                    <p style="font-size: 1.2em; margin: 20px 0;">
+                        Input Layer → Hidden Layer (ReLU) → Output Layer (Sigmoid) → Prediction
+                    </p>
+                </div>
+
+                <div class="nn-diagram">
+                    <svg class="nn-svg" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Input Layer -->
+                        <text x="50" y="30" font-size="18" font-weight="bold" fill="#667eea">Input Layer</text>
+                        <text x="50" y="50" font-size="14" fill="#666">(4 features)</text>
+                        <circle cx="100" cy="100" r="20" fill="#667eea" opacity="0.8"/>
+                        <text x="95" y="105" font-size="12" fill="white">x₁</text>
+                        <circle cx="100" cy="180" r="20" fill="#667eea" opacity="0.8"/>
+                        <text x="95" y="185" font-size="12" fill="white">x₂</text>
+                        <circle cx="100" cy="260" r="20" fill="#667eea" opacity="0.8"/>
+                        <text x="95" y="265" font-size="12" fill="white">x₃</text>
+                        <circle cx="100" cy="340" r="20" fill="#667eea" opacity="0.8"/>
+                        <text x="95" y="345" font-size="12" fill="white">x₄</text>
+
+                        <!-- Hidden Layer -->
+                        <text x="350" y="30" font-size="18" font-weight="bold" fill="#764ba2">Hidden Layer</text>
+                        <text x="350" y="50" font-size="14" fill="#666">(3 neurons)</text>
+                        <circle cx="400" cy="140" r="25" fill="#764ba2" opacity="0.8"/>
+                        <text x="392" y="147" font-size="12" fill="white">h₁</text>
+                        <circle cx="400" cy="240" r="25" fill="#764ba2" opacity="0.8"/>
+                        <text x="392" y="247" font-size="12" fill="white">h₂</text>
+                        <circle cx="400" cy="340" r="25" fill="#764ba2" opacity="0.8"/>
+                        <text x="392" y="347" font-size="12" fill="white">h₃</text>
+
+                        <!-- Output Layer -->
+                        <text x="650" y="30" font-size="18" font-weight="bold" fill="#28a745">Output Layer</text>
+                        <text x="650" y="50" font-size="14" fill="#666">(1 neuron)</text>
+                        <circle cx="700" cy="240" r="25" fill="#28a745" opacity="0.8"/>
+                        <text x="695" y="247" font-size="12" fill="white">ŷ</text>
+
+                        <!-- Connections Input to Hidden -->
+                        <line x1="120" y1="100" x2="375" y2="140" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="120" y1="100" x2="375" y2="240" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="120" y1="100" x2="375" y2="340" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+
+                        <line x1="120" y1="180" x2="375" y2="140" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="120" y1="180" x2="375" y2="240" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="120" y1="180" x2="375" y2="340" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+
+                        <line x1="120" y1="260" x2="375" y2="140" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="120" y1="260" x2="375" y2="240" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="120" y1="260" x2="375" y2="340" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+
+                        <line x1="120" y1="340" x2="375" y2="140" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="120" y1="340" x2="375" y2="240" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="120" y1="340" x2="375" y2="340" stroke="#999" stroke-width="1.5" opacity="0.5"/>
+
+                        <!-- Connections Hidden to Output -->
+                        <line x1="425" y1="140" x2="675" y2="240" stroke="#999" stroke-width="2" opacity="0.5"/>
+                        <line x1="425" y1="240" x2="675" y2="240" stroke="#999" stroke-width="2" opacity="0.5"/>
+                        <line x1="425" y1="340" x2="675" y2="240" stroke="#999" stroke-width="2" opacity="0.5"/>
+
+                        <!-- Weight Labels -->
+                        <text x="200" y="120" font-size="14" fill="#667eea" font-weight="bold">W₁</text>
+                        <text x="200" y="140" font-size="12" fill="#666">(4×3)</text>
+                        <text x="200" y="160" font-size="12" fill="#666">b₁ (1×3)</text>
+
+                        <text x="520" y="220" font-size="14" fill="#764ba2" font-weight="bold">W₂</text>
+                        <text x="520" y="240" font-size="12" fill="#666">(3×1)</text>
+                        <text x="520" y="260" font-size="12" fill="#666">b₂ (1×1)</text>
+
+                        <!-- Activation Functions -->
+                        <rect x="350" y="390" width="100" height="40" rx="5" fill="#ffc107" opacity="0.3" stroke="#ffc107" stroke-width="2"/>
+                        <text x="375" y="413" font-size="14" font-weight="bold" fill="#333">ReLU</text>
+
+                        <rect x="650" y="290" width="100" height="40" rx="5" fill="#17a2b8" opacity="0.3" stroke="#17a2b8" stroke-width="2"/>
+                        <text x="665" y="313" font-size="14" font-weight="bold" fill="#333">Sigmoid</text>
+
+                        <!-- Result -->
+                        <text x="780" y="245" font-size="16" fill="#28a745" font-weight="bold">→ Prediction</text>
+                        <text x="780" y="265" font-size="12" fill="#666">(0 or 1)</text>
+                    </svg>
+                </div>
+
+                <div class="info-box">
+                    <h4>📊 Example Dimensions:</h4>
+                    <ul>
+                        <li><strong>Input dimension:</strong> 4 features</li>
+                        <li><strong>Hidden dimension:</strong> 3 neurons</li>
+                        <li><strong>Output dimension:</strong> 1 (binary classification)</li>
+                        <li><strong>Batch size:</strong> 2 samples</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Section 2: Initialization -->
+            <section id="initialization">
+                <h2>2. Initialization</h2>
+
+                <h3><span class="step-number">1</span>Parameter Setup</h3>
+
+                <p>We need 4 weight/bias matrices to connect all layers:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Shape</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>W₁</strong></td>
+                            <td>(4, 3)</td>
+                            <td>Weights connecting input → hidden layer</td>
+                        </tr>
+                        <tr>
+                            <td><strong>b₁</strong></td>
+                            <td>(1, 3)</td>
+                            <td>Bias for hidden layer</td>
+                        </tr>
+                        <tr>
+                            <td><strong>W₂</strong></td>
+                            <td>(3, 1)</td>
+                            <td>Weights connecting hidden → output layer</td>
+                        </tr>
+                        <tr>
+                            <td><strong>b₂</strong></td>
+                            <td>(1, 1)</td>
+                            <td>Bias for output layer</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3><span class="step-number">2</span>Xavier Initialization</h3>
+
+                <div class="formula-box">
+                    W₁ = random_normal(4, 3) × √(2 / input_dim)
+                </div>
+
+                <div class="warning-box">
+                    <h4>⚠️ Why Xavier Initialization?</h4>
+                    <p>Xavier initialization scales weights by <span class="highlight">√(2/n_in)</span> where n_in = number of input neurons.</p>
+                    <p><strong>Purpose:</strong> Prevents vanishing/exploding gradients by keeping variance of activations consistent across layers.</p>
+                </div>
+
+                <div class="code-block">
+<span class="comment"># Xavier initialization</span>
+<span class="keyword">self</span>.W1 = np.random.randn(input_dim, hidden_dim) * np.sqrt(<span class="highlight">2.</span> / input_dim)
+<span class="keyword">self</span>.b1 = np.zeros((<span class="highlight">1</span>, hidden_dim))
+<span class="keyword">self</span>.W2 = np.random.randn(hidden_dim, <span class="highlight">1</span>) * np.sqrt(<span class="highlight">2.</span> / hidden_dim)
+<span class="keyword">self</span>.b2 = np.zeros((<span class="highlight">1</span>, <span class="highlight">1</span>))
+                </div>
+
+                <h3><span class="step-number">3</span>Example Initial Values</h3>
+
+                <div class="formula-box">
+W₁ = [[ 0.35, -0.21,  0.48],
+      [-0.15,  0.67,  0.12],
+      [ 0.44, -0.39,  0.55],
+      [-0.28,  0.19, -0.41]]    Shape: (4, 3)
+
+b₁ = [[0., 0., 0.]]             Shape: (1, 3)
+
+W₂ = [[ 0.58],
+      [-0.42],
+      [ 0.31]]                  Shape: (3, 1)
+
+b₂ = [[0.]]                     Shape: (1, 1)
+                </div>
+            </section>
+
+            <!-- Section 3: Forward Pass -->
+            <section id="forward">
+                <h2>3. Forward Pass</h2>
+
+                <p>The forward pass transforms input data through the network layers to produce a prediction.</p>
+
+                <h3><span class="step-number">1</span>Input Batch</h3>
+
+                <div class="formula-box">
+X = [[0.2, 0.5, 0.1, 0.8],     <span class="comment"># Sample 1</span>
+     [0.3, 0.7, 0.4, 0.6]]     <span class="comment"># Sample 2</span>
+Shape: (2, 4)
+                </div>
+
+                <h3><span class="step-number">2</span>Hidden Layer Pre-Activation</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> Z₁ = X · W₁ + b₁
+                </div>
+
+                <p><strong>Matrix Multiplication:</strong></p>
+
+                <div class="formula-box">
+Z₁ = [[0.2, 0.5, 0.1, 0.8]]  ·  [[ 0.35, -0.21,  0.48]]  +  [[0., 0., 0.]]
+     [[0.3, 0.7, 0.4, 0.6]]      [[-0.15,  0.67,  0.12]]
+                                  [[ 0.44, -0.39,  0.55]]
+                                  [[-0.28,  0.19, -0.41]]
+                </div>
+
+                <div class="success-box">
+                    <h4>🔢 Calculation for first element (Sample 1, Neuron 1):</h4>
+                    <div class="formula-box">
+Z₁[0,0] = 0.2×0.35 + 0.5×(-0.15) + 0.1×0.44 + 0.8×(-0.28) + 0
+        = 0.07 - 0.075 + 0.044 - 0.224
+        = <span class="highlight">-0.185</span>
+                    </div>
+                </div>
+
+                <div class="formula-box">
+<strong>Result:</strong>
+Z₁ = [[-0.185,  0.321,  0.156],
+      [-0.095,  0.487,  0.203]]    Shape: (2, 3)
+                </div>
+
+                <div class="code-block">
+<span class="keyword">self</span>.Z1 = np.<span class="function">dot</span>(X, <span class="keyword">self</span>.W1) + <span class="keyword">self</span>.b1
+                </div>
+
+                <h3><span class="step-number">3</span>Hidden Layer Activation (ReLU)</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> A₁ = ReLU(Z₁) = max(0, Z₁)
+
+<strong>ReLU Function:</strong>
+        ⎧ x  if x > 0
+ReLU(x) = ⎨
+        ⎩ 0  if x ≤ 0
+                </div>
+
+                <div class="formula-box">
+A₁ = [[max(0, -0.185), max(0, 0.321), max(0, 0.156)],
+      [max(0, -0.095), max(0, 0.487), max(0, 0.203)]]
+
+<strong>Result:</strong>
+A₁ = [[0.000, 0.321, 0.156],
+      [0.000, 0.487, 0.203]]    Shape: (2, 3)
+                </div>
+
+                <div class="code-block">
+<span class="keyword">self</span>.A1 = <span class="function">relu</span>(<span class="keyword">self</span>.Z1)  <span class="comment"># relu(x) = np.maximum(0, x)</span>
+                </div>
+
+                <h3><span class="step-number">4</span>Dropout (Optional - Training Only)</h3>
+
+                <div class="warning-box">
+                    <h4>🎲 Dropout Regularization</h4>
+                    <p><strong>Formula:</strong> A₁ = A₁ × D₁ / (1 - dropout_rate)</p>
+                    <p>Where D₁ is a random binary mask (0s and 1s)</p>
+                </div>
+
+                <div class="formula-box">
+<span class="comment"># Example with dropout_rate = 0.3</span>
+D₁ = [[1, 0, 1],    <span class="comment"># Middle neuron randomly dropped</span>
+      [1, 1, 1]]
+
+<span class="comment"># Apply dropout</span>
+A₁ = [[0.000, 0.000, 0.156],
+      [0.000, 0.487, 0.203]]
+
+<span class="comment"># Scale up remaining neurons</span>
+A₁ = A₁ / 0.7 = [[0.000, 0.000, 0.223],
+                  [0.000, 0.696, 0.290]]
+                </div>
+
+                <div class="info-box">
+                    <strong>💡 Why scale?</strong> To maintain expected sum during inference (when dropout is off).
+                </div>
+
+                <div class="code-block">
+<span class="keyword">if</span> training:
+    <span class="keyword">self</span>.D1 = (np.random.<span class="function">rand</span>(*<span class="keyword">self</span>.A1.shape) > <span class="keyword">self</span>.dropout_rate).<span class="function">astype</span>(<span class="function">float</span>)
+    <span class="keyword">self</span>.A1 *= <span class="keyword">self</span>.D1
+    <span class="keyword">self</span>.A1 /= (<span class="highlight">1</span> - <span class="keyword">self</span>.dropout_rate)
+                </div>
+
+                <h3><span class="step-number">5</span>Output Layer Pre-Activation</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> Z₂ = A₁ · W₂ + b₂
+                </div>
+
+                <div class="formula-box">
+Z₂ = [[0.000, 0.321, 0.156]]  ·  [[ 0.58]]  +  [[0.]]
+     [[0.000, 0.487, 0.203]]      [[-0.42]]
+                                   [[ 0.31]]
+
+Z₂[0] = 0.000×0.58 + 0.321×(-0.42) + 0.156×0.31 + 0
+      = 0 - 0.135 + 0.048
+      = <span class="highlight">-0.087</span>
+
+<strong>Result:</strong>
+Z₂ = [[-0.087],
+      [-0.142]]    Shape: (2, 1)
+                </div>
+
+                <div class="code-block">
+<span class="keyword">self</span>.Z2 = np.<span class="function">dot</span>(<span class="keyword">self</span>.A1, <span class="keyword">self</span>.W2) + <span class="keyword">self</span>.b2
+                </div>
+
+                <h3><span class="step-number">6</span>Output Activation (Sigmoid)</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> A₂ = σ(Z₂) = 1 / (1 + e^(-Z₂))
+                </div>
+
+                <div class="success-box">
+                    <h4>📊 Computation:</h4>
+                    <div class="formula-box">
+A₂[0] = 1 / (1 + e^0.087) = 1 / (1 + 1.091) = <span class="highlight">0.478</span>
+A₂[1] = 1 / (1 + e^0.142) = 1 / (1 + 1.153) = <span class="highlight">0.465</span>
+
+<strong>Result:</strong>
+A₂ = [[0.478],
+      [0.465]]    Shape: (2, 1)
+                    </div>
+                    <p><strong>Interpretation:</strong> Sample 1 has <span class="highlight">47.8%</span> probability of ASD, Sample 2 has <span class="highlight">46.5%</span></p>
+                </div>
+
+                <div class="code-block">
+<span class="keyword">self</span>.A2 = <span class="function">sigmoid</span>(<span class="keyword">self</span>.Z2)
+<span class="keyword">return self</span>.A2
+                </div>
+            </section>
+
+            <!-- Section 4: Loss Calculation -->
+            <section id="loss">
+                <h2>4. Loss Calculation</h2>
+
+                <h3>Binary Cross-Entropy Loss</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong>
+L = -1/m × Σ[y_i × log(ŷ_i) + (1 - y_i) × log(1 - ŷ_i)]
+
+Where:
+  m = number of samples (batch size)
+  y_i = true label (0 or 1)
+  ŷ_i = predicted probability
+                </div>
+
+                <h3>Example Calculation</h3>
+
+                <div class="formula-box">
+<strong>True labels:</strong>
+y = [[1],    <span class="comment"># Sample 1 has ASD</span>
+     [0]]    <span class="comment"># Sample 2 does not have ASD</span>
+
+<strong>Predicted probabilities:</strong>
+y_pred = [[0.478],
+          [0.465]]
+                </div>
+
+                <div class="success-box">
+                    <h4>📊 For Sample 1 (y=1):</h4>
+                    <div class="formula-box">
+Loss₁ = -(1 × log(0.478) + 0 × log(1-0.478))
+      = -log(0.478)
+      = -(-0.738)
+      = <span class="highlight">0.738</span>
+                    </div>
+                </div>
+
+                <div class="success-box">
+                    <h4>📊 For Sample 2 (y=0):</h4>
+                    <div class="formula-box">
+Loss₂ = -(0 × log(0.465) + 1 × log(1-0.465))
+      = -log(0.535)
+      = -(-0.625)
+      = <span class="highlight">0.625</span>
+                    </div>
+                </div>
+
+                <div class="formula-box">
+<strong>Total Loss:</strong>
+L = (0.738 + 0.625) / 2 = <span class="highlight">0.682</span>
+                </div>
+
+                <div class="code-block">
+<span class="keyword">def</span> <span class="function">binary_cross_entropy</span>(y_true, y_pred):
+    eps = <span class="highlight">1e-8</span>  <span class="comment"># Small value to prevent log(0)</span>
+    y_pred = np.<span class="function">clip</span>(y_pred, eps, <span class="highlight">1</span> - eps)
+    <span class="keyword">return</span> -np.<span class="function">mean</span>(y_true * np.<span class="function">log</span>(y_pred) + (<span class="highlight">1</span> - y_true) * np.<span class="function">log</span>(<span class="highlight">1</span> - y_pred))
+                </div>
+            </section>
+
+            <!-- Section 5: Backward Pass -->
+            <section id="backward">
+                <h2>5. Backward Pass (Backpropagation)</h2>
+
+                <div class="info-box">
+                    <h4>🎯 Goal: Chain Rule</h4>
+                    <p>We need to find how much each weight contributed to the error, then adjust them.</p>
+                    <p><strong>Compute gradients:</strong> ∂L/∂W₁, ∂L/∂b₁, ∂L/∂W₂, ∂L/∂b₂</p>
+                </div>
+
+                <h3><span class="step-number">1</span>Output Layer Gradient</h3>
+
+                <div class="formula-box">
+<strong>Derivative of Loss w.r.t. Z₂:</strong>
+
+For binary cross-entropy + sigmoid, the derivative simplifies to:
+∂L/∂Z₂ = ŷ - y  (predicted - actual)
+                </div>
+
+                <div class="success-box">
+                    <h4>🔬 Mathematical Proof:</h4>
+                    <div class="formula-box">
+∂L/∂Z₂ = (∂L/∂A₂) × (∂A₂/∂Z₂)
+       = [(ŷ - y)/(ŷ(1-ŷ))] × [ŷ(1-ŷ)]
+       = ŷ - y
+                    </div>
+                    <p>This beautiful simplification is why sigmoid + cross-entropy work so well together!</p>
+                </div>
+
+                <div class="formula-box">
+<strong>Computation:</strong>
+dZ₂ = [[0.478]]  -  [[1]]  =  [[-0.522]]
+      [[0.465]]     [[0]]      [[ 0.465]]
+Shape: (2, 1)
+                </div>
+
+                <div class="code-block">
+dZ2 = y_pred - y.<span class="function">reshape</span>(<span class="highlight">-1</span>, <span class="highlight">1</span>)
+                </div>
+
+                <h3><span class="step-number">2</span>Output Layer Weight Gradient</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> ∂L/∂W₂ = (1/m) × A₁ᵀ · dZ₂
+                </div>
+
+                <div class="info-box">
+                    <p><strong>Chain rule:</strong> ∂L/∂W₂ = (∂L/∂Z₂) × (∂Z₂/∂W₂)</p>
+                    <p>Since Z₂ = A₁·W₂ + b₂, we have ∂Z₂/∂W₂ = A₁</p>
+                </div>
+
+                <div class="formula-box">
+<strong>Computation:</strong>
+dW₂ = (1/2) × [[0.000, 0.000]]ᵀ  ·  [[-0.522]]
+               [[0.321, 0.487]]      [[ 0.465]]
+               [[0.156, 0.203]]
+
+dW₂[0] = 0.5 × (0.000×(-0.522) + 0.000×0.465) = 0.000
+dW₂[1] = 0.5 × (0.321×(-0.522) + 0.487×0.465) = 0.032
+dW₂[2] = 0.5 × (0.156×(-0.522) + 0.203×0.465) = 0.007
+
+<strong>Result:</strong>
+dW₂ = [[ 0.000],
+       [ 0.032],
+       [ 0.007]]    Shape: (3, 1)
+                </div>
+
+                <div class="code-block">
+m = y.shape[<span class="highlight">0</span>]
+dW2 = (<span class="highlight">1</span> / m) * np.<span class="function">dot</span>(<span class="keyword">self</span>.A1.T, dZ2)
+                </div>
+
+                <h3><span class="step-number">3</span>Output Layer Bias Gradient</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> ∂L/∂b₂ = mean(dZ₂)
+                </div>
+
+                <div class="formula-box">
+db₂ = mean([[-0.522], [0.465]]) = [[-0.029]]    Shape: (1, 1)
+                </div>
+
+                <div class="code-block">
+db2 = np.<span class="function">mean</span>(dZ2, axis=<span class="highlight">0</span>, keepdims=<span class="highlight">True</span>)
+                </div>
+
+                <h3><span class="step-number">4</span>Hidden Layer Gradient (Backpropagate)</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> ∂L/∂A₁ = dZ₂ · W₂ᵀ
+                </div>
+
+                <div class="formula-box">
+<strong>Computation:</strong>
+dA₁ = [[-0.522]]  ·  [[0.58, -0.42, 0.31]]
+      [[ 0.465]]
+
+dA₁ = [[-0.303,  0.219, -0.162],
+       [ 0.270, -0.195,  0.144]]    Shape: (2, 3)
+                </div>
+
+                <div class="code-block">
+dA1 = np.<span class="function">dot</span>(dZ2, <span class="keyword">self</span>.W2.T)
+                </div>
+
+                <h3><span class="step-number">5</span>Apply ReLU Derivative</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> ∂L/∂Z₁ = dA₁ × ReLU'(Z₁)
+
+<strong>ReLU Derivative:</strong>
+         ⎧ 1  if x > 0
+ReLU'(x) = ⎨
+         ⎩ 0  if x ≤ 0
+                </div>
+
+                <div class="formula-box">
+<strong>Recall Z₁:</strong>
+Z₁ = [[-0.185,  0.321,  0.156],
+      [-0.095,  0.487,  0.203]]
+
+<strong>ReLU Derivative Mask:</strong>
+ReLU'(Z₁) = [[0, 1, 1],    <span class="comment"># First neuron was negative</span>
+             [0, 1, 1]]
+                </div>
+
+                <div class="success-box">
+                    <h4>🔢 Apply Element-wise:</h4>
+                    <div class="formula-box">
+dA₁ = dA₁ × ReLU'(Z₁)
+    = [[-0.303, 0.219, -0.162]]  ×  [[0, 1, 1]]
+      [[ 0.270, -0.195, 0.144]]     [[0, 1, 1]]
+
+<strong>Result:</strong>
+    = [[0.000, 0.219, -0.162],
+       [0.000, -0.195, 0.144]]
+                    </div>
+                </div>
+
+                <div class="code-block">
+dA1 *= <span class="function">relu_derivative</span>(<span class="keyword">self</span>.Z1)
+                </div>
+
+                <h3><span class="step-number">6</span>Account for Dropout</h3>
+
+                <div class="warning-box">
+                    <p>If dropout was applied during forward pass:</p>
+                    <div class="formula-box">
+dA₁ = dA₁ × D₁ / (1 - dropout_rate)
+                    </div>
+                </div>
+
+                <div class="code-block">
+dA1 *= <span class="keyword">self</span>.D1 / (<span class="highlight">1</span> - <span class="keyword">self</span>.dropout_rate)
+                </div>
+
+                <h3><span class="step-number">7</span>Hidden Layer Weight Gradient</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> ∂L/∂W₁ = (1/m) × Xᵀ · dA₁
+                </div>
+
+                <div class="formula-box">
+<strong>Computation:</strong>
+dW₁ = (1/2) × [[0.2, 0.3]]ᵀ  ·  [[0.000,  0.219, -0.162]]
+               [[0.5, 0.7]]      [[0.000, -0.195,  0.144]]
+               [[0.1, 0.4]]
+               [[0.8, 0.6]]
+
+<strong>Result:</strong>
+dW₁ = [[ 0.000,  0.007, -0.011],
+       [ 0.000, -0.014,  0.020],
+       [ 0.000, -0.017,  0.042],
+       [ 0.000,  0.070, -0.043]]    Shape: (4, 3)
+                </div>
+
+                <div class="code-block">
+dW1 = (<span class="highlight">1</span> / m) * np.<span class="function">dot</span>(X.T, dA1)
+                </div>
+
+                <h3><span class="step-number">8</span>Hidden Layer Bias Gradient</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> ∂L/∂b₁ = mean(dA₁, axis=0)
+                </div>
+
+                <div class="formula-box">
+db₁ = mean([[0.000, 0.219, -0.162],
+            [0.000, -0.195, 0.144]], axis=0)
+    = [[0.000, 0.012, -0.009]]    Shape: (1, 3)
+                </div>
+
+                <div class="code-block">
+db1 = np.<span class="function">mean</span>(dA1, axis=<span class="highlight">0</span>, keepdims=<span class="highlight">True</span>)
+                </div>
+
+                <div class="flow-arrow">↓</div>
+                <div class="success-box" style="text-align: center;">
+                    <h3>✅ All Gradients Computed!</h3>
+                    <p>Now we can update the weights using gradient descent.</p>
+                </div>
+            </section>
+
+            <!-- Section 6: Optimization -->
+            <section id="optimization">
+                <h2>6. Optimization (Gradient Descent)</h2>
+
+                <h3>Update Rule</h3>
+
+                <div class="formula-box">
+<strong>Formula:</strong> θ_new = θ_old - learning_rate × gradient
+
+Where θ represents any parameter (W₁, b₁, W₂, b₂)
+                </div>
+
+                <div class="info-box">
+                    <h4>💡 Intuition:</h4>
+                    <p>Weights move in the <strong>opposite direction</strong> of the gradient to reduce loss.</p>
+                    <ul>
+                        <li>If gradient is positive → weight decreases</li>
+                        <li>If gradient is negative → weight increases</li>
+                        <li>Larger gradient → bigger update</li>
+                    </ul>
+                </div>
+
+                <h3>Example Weight Updates</h3>
+
+                <div class="formula-box">
+<strong>Learning rate:</strong> lr = 0.005
+                </div>
+
+                <div class="success-box">
+                    <h4>🔧 Update W₂:</h4>
+                    <div class="formula-box">
+W₂_new = W₂_old - lr × dW₂
+
+       = [[ 0.58]]     - 0.005 × [[ 0.000]]
+         [[-0.42]]                [[ 0.032]]
+         [[ 0.31]]                [[ 0.007]]
+
+       = [[ 0.58000]]    <span class="comment"># Almost no change</span>
+         [[-0.42016]]    <span class="comment"># Decreased by 0.005×0.032</span>
+         [[ 0.30996]]    <span class="comment"># Decreased by 0.005×0.007</span>
+                    </div>
+                </div>
+
+                <div class="success-box">
+                    <h4>🔧 Update b₂:</h4>
+                    <div class="formula-box">
+b₂_new = b₂_old - lr × db₂
+       = [[0.]] - 0.005 × [[-0.029]]
+       = [[0.000145]]
+                    </div>
+                </div>
+
+                <div class="success-box">
+                    <h4>🔧 Update W₁:</h4>
+                    <div class="formula-box">
+W₁_new = W₁_old - lr × dW₁
+
+       = [[ 0.35, -0.21,  0.48]]     - 0.005 × [[ 0.000,  0.007, -0.011]]
+         [[-0.15,  0.67,  0.12]]                [[ 0.000, -0.014,  0.020]]
+         [[ 0.44, -0.39,  0.55]]                [[ 0.000, -0.017,  0.042]]
+         [[-0.28,  0.19, -0.41]]                [[ 0.000,  0.070, -0.043]]
+
+       = [[ 0.35000, -0.21004,  0.48006]]
+         [[-0.15000,  0.67007,  0.11990]]
+         [[ 0.44000, -0.38991,  0.54979]]
+         [[-0.28000,  0.18965, -0.40978]]
+                    </div>
+                </div>
+
+                <div class="code-block">
+<span class="comment"># Gradient descent updates</span>
+<span class="keyword">self</span>.W1 -= <span class="keyword">self</span>.lr * dW1
+<span class="keyword">self</span>.b1 -= <span class="keyword">self</span>.lr * db1
+<span class="keyword">self</span>.W2 -= <span class="keyword">self</span>.lr * dW2
+<span class="keyword">self</span>.b2 -= <span class="keyword">self</span>.lr * db2
+                </div>
+
+                <div class="warning-box">
+                    <h4>⚙️ Learning Rate Selection:</h4>
+                    <ul>
+                        <li><strong>Too high (e.g., 0.1):</strong> Weights oscillate, training diverges</li>
+                        <li><strong>Too low (e.g., 0.00001):</strong> Training is very slow</li>
+                        <li><strong>Just right (e.g., 0.001-0.01):</strong> Smooth, steady convergence</li>
+                    </ul>
+                </div>
+
+                <h3>Advanced: L2 Regularization</h3>
+
+                <div class="formula-box">
+<strong>Modified Update Rule:</strong>
+dW = gradient + (λ/m) × W    <span class="comment"># Add regularization term</span>
+W_new = W_old - lr × dW
+                </div>
+
+                <div class="info-box">
+                    <h4>🎯 Purpose of L2 Regularization:</h4>
+                    <p><strong>Prevents overfitting</strong> by penalizing large weights.</p>
+                    <p>λ (lambda) controls regularization strength (e.g., 0.01)</p>
+                </div>
+
+                <div class="code-block">
+<span class="comment"># With L2 regularization</span>
+dW2 = (<span class="highlight">1</span> / m) * np.<span class="function">dot</span>(<span class="keyword">self</span>.A1.T, dZ2) + (<span class="keyword">self</span>.l2_lambda / m) * <span class="keyword">self</span>.W2
+dW1 = (<span class="highlight">1</span> / m) * np.<span class="function">dot</span>(X.T, dA1) + (<span class="keyword">self</span>.l2_lambda / m) * <span class="keyword">self</span>.W1
+                </div>
+            </section>
+
+            <!-- Section 7: Training Loop -->
+            <section id="training">
+                <h2>7. Training Loop</h2>
+
+                <h3>One Training Epoch</h3>
+
+                <div class="architecture-overview">
+                    <h4>Training Cycle:</h4>
+                    <div class="flow-arrow">⬇️</div>
+                    <p><strong>1. Shuffle Data</strong> (randomize order)</p>
+                    <div class="flow-arrow">⬇️</div>
+                    <p><strong>2. For Each Mini-Batch:</strong></p>
+                    <ul style="list-style: none; padding: 0;">
+                        <li>➤ Forward pass → get predictions</li>
+                        <li>➤ Calculate loss</li>
+                        <li>➤ Backward pass → compute gradients</li>
+                        <li>➤ Update weights</li>
+                    </ul>
+                    <div class="flow-arrow">⬇️</div>
+                    <p><strong>3. Validate</strong> on validation set</p>
+                    <div class="flow-arrow">⬇️</div>
+                    <p><strong>4. Repeat</strong> for multiple epochs</p>
+                </div>
+
+                <h3>Why Mini-Batch Training?</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Batch Size</th>
+                            <th>Pros</th>
+                            <th>Cons</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Batch Gradient Descent</strong></td>
+                            <td>All samples (e.g., 1000)</td>
+                            <td>Smooth convergence, stable gradients</td>
+                            <td>Slow, high memory usage</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Stochastic Gradient Descent</strong></td>
+                            <td>1 sample</td>
+                            <td>Fast updates, low memory</td>
+                            <td>Very noisy, unstable</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mini-Batch Gradient Descent</strong></td>
+                            <td>Small groups (e.g., 16)</td>
+                            <td>⭐ Best balance: fast + stable</td>
+                            <td>Requires tuning batch size</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Complete Training Code</h3>
+
+                <div class="code-block">
+<span class="keyword">def</span> <span class="function">fit</span>(<span class="keyword">self</span>, X, y, epochs=<span class="highlight">100</span>, batch_size=<span class="highlight">16</span>, val_data=<span class="highlight">None</span>):
+    n = X.shape[<span class="highlight">0</span>]
+    history = {<span class="highlight">'loss'</span>: [], <span class="highlight">'val_loss'</span>: [], <span class="highlight">'accuracy'</span>: [], <span class="highlight">'val_accuracy'</span>: []}
+
+    <span class="keyword">for</span> epoch <span class="keyword">in</span> <span class="function">range</span>(epochs):
+        <span class="comment"># 1. Shuffle data</span>
+        idx = np.random.<span class="function">permutation</span>(n)
+        X_shuffled, y_shuffled = X[idx], y[idx]
+        batch_losses, batch_acc = [], []
+
+        <span class="comment"># 2. Process each mini-batch</span>
+        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="highlight">0</span>, n, batch_size):
+            X_batch = X_shuffled[i:i + batch_size]
+            y_batch = y_shuffled[i:i + batch_size]
+
+            <span class="comment"># Forward pass</span>
+            y_pred = <span class="keyword">self</span>.<span class="function">forward</span>(X_batch, training=<span class="highlight">True</span>)
+
+            <span class="comment"># Compute loss</span>
+            loss = <span class="function">binary_cross_entropy</span>(y_batch, y_pred)
+
+            <span class="comment"># Backward pass</span>
+            <span class="keyword">self</span>.<span class="function">backward</span>(X_batch, y_batch, y_pred)
+
+            <span class="comment"># Calculate accuracy</span>
+            acc = np.<span class="function">mean</span>((y_pred > <span class="highlight">0.5</span>).<span class="function">astype</span>(<span class="function">int</span>).<span class="function">flatten</span>() == y_batch)
+            batch_losses.<span class="function">append</span>(loss)
+            batch_acc.<span class="function">append</span>(acc)
+
+        <span class="comment"># 3. Validation</span>
+        val_loss, val_acc = <span class="highlight">0</span>, <span class="highlight">0</span>
+        <span class="keyword">if</span> val_data:
+            X_val, y_val = val_data
+            y_val_pred = <span class="keyword">self</span>.<span class="function">forward</span>(X_val, training=<span class="highlight">False</span>)
+            val_loss = <span class="function">binary_cross_entropy</span>(y_val, y_val_pred)
+            val_acc = np.<span class="function">mean</span>((y_val_pred > <span class="highlight">0.5</span>).<span class="function">astype</span>(<span class="function">int</span>).<span class="function">flatten</span>() == y_val)
+
+        <span class="comment"># 4. Record history</span>
+        history[<span class="highlight">'loss'</span>].<span class="function">append</span>(np.<span class="function">mean</span>(batch_losses))
+        history[<span class="highlight">'accuracy'</span>].<span class="function">append</span>(np.<span class="function">mean</span>(batch_acc))
+        history[<span class="highlight">'val_loss'</span>].<span class="function">append</span>(val_loss)
+        history[<span class="highlight">'val_accuracy'</span>].<span class="function">append</span>(val_acc)
+
+        <span class="keyword">if</span> epoch % <span class="highlight">10</span> == <span class="highlight">0</span>:
+            <span class="function">print</span>(<span class="function">f</span><span class="highlight">"Epoch {epoch+1}/{epochs} - loss: {np.mean(batch_losses):.4f}, val_acc: {val_acc:.2f}"</span>)
+
+    <span class="keyword">return</span> history
+                </div>
+
+                <h3>Early Stopping</h3>
+
+                <div class="info-box">
+                    <h4>Early Stopping Mechanism:</h4>
+                    <p>Stop training when validation loss stops improving to prevent overfitting.</p>
+                </div>
+
+                <div class="code-block">
+<span class="comment"># Early stopping logic</span>
+best_val_loss = <span class="function">float</span>(<span class="highlight">'inf'</span>)
+patience_counter = <span class="highlight">0</span>
+patience = <span class="highlight">20</span>  <span class="comment"># Stop after 20 epochs without improvement</span>
+
+<span class="keyword">if</span> val_loss < best_val_loss:
+    best_val_loss = val_loss
+    patience_counter = <span class="highlight">0</span>
+    <span class="comment"># Save best weights</span>
+    best_weights = (<span class="keyword">self</span>.W1.<span class="function">copy</span>(), <span class="keyword">self</span>.b1.<span class="function">copy</span>(),
+                    <span class="keyword">self</span>.W2.<span class="function">copy</span>(), <span class="keyword">self</span>.b2.<span class="function">copy</span>())
+<span class="keyword">else</span>:
+    patience_counter += <span class="highlight">1</span>
+
+<span class="keyword">if</span> patience_counter >= patience:
+    <span class="function">print</span>(<span class="highlight">f"Early stopping at epoch {epoch+1}"</span>)
+    <span class="comment"># Restore best weights</span>
+    <span class="keyword">self</span>.W1, <span class="keyword">self</span>.b1, <span class="keyword">self</span>.W2, <span class="keyword">self</span>.b2 = best_weights
+    <span class="keyword">break</span>
+                </div>
+
+                <h3>Training Progress Visualization</h3>
+
+                <div class="success-box">
+                    <h4>📊 What to Watch During Training:</h4>
+                    <ul>
+                        <li><strong>Training Loss:</strong> Should steadily decrease</li>
+                        <li><strong>Validation Loss:</strong> Should decrease, then plateau</li>
+                        <li><strong>Training Accuracy:</strong> Should increase</li>
+                        <li><strong>Validation Accuracy:</strong> Should increase, then stabilize</li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <h4>⚠️ Warning Signs:</h4>
+                    <ul>
+                        <li><strong>Training loss increasing:</strong> Learning rate too high</li>
+                        <li><strong>Val loss >> Train loss:</strong> Overfitting (add regularization)</li>
+                        <li><strong>Both losses high:</strong> Underfitting (increase model capacity)</li>
+                        <li><strong>Val accuracy fluctuating wildly:</strong> Dataset too small</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Section 8: Summary -->
+            <section id="summary">
+                <h2>8. Summary: Complete Information Flow</h2>
+
+                <h3>Forward Pass (Making Predictions)</h3>
+
+                <div class="formula-box">
+X → [×W₁ + b₁] → Z₁ → [ReLU] → A₁ → [Dropout] → [×W₂ + b₂] → Z₂ → [Sigmoid] → ŷ
+                </div>
+
+                <div class="architecture-overview">
+                    <h4>Step-by-Step:</h4>
+                    <ol style="text-align: left; display: inline-block;">
+                        <li><strong>Linear transformation:</strong> Z₁ = X·W₁ + b₁</li>
+                        <li><strong>Activation:</strong> A₁ = ReLU(Z₁) = max(0, Z₁)</li>
+                        <li><strong>Regularization:</strong> Apply dropout (training only)</li>
+                        <li><strong>Linear transformation:</strong> Z₂ = A₁·W₂ + b₂</li>
+                        <li><strong>Activation:</strong> ŷ = Sigmoid(Z₂) = 1/(1 + e^(-Z₂))</li>
+                    </ol>
+                </div>
+
+                <h3>Backward Pass (Learning from Mistakes)</h3>
+
+                <div class="formula-box">
+Loss ← [∂L/∂Z₂=ŷ-y] ← dZ₂ ← [∂L/∂W₂] ← dW₂
+                     ↓
+                   [×W₂ᵀ] → dA₁ → [×ReLU'] → dZ₁ → [∂L/∂W₁] → dW₁
+                </div>
+
+                <div class="architecture-overview">
+                    <h4>Step </h4>
+                </div>
+            </section>
