@@ -43,8 +43,8 @@ TOPICS = {
         'subtopics': [
             {'id': 'neural-networks', 'title': 'Neural Networks Basics',
              'description': 'Perceptrons, activation functions, backpropagation'},
-            {'id':'optimizers','title':'Optimizers',
-             'description':'Different types of optimizers'},
+            {'id': 'optimizers', 'title': 'Optimizers',
+             'description': 'Different types of optimizers'},
             {'id': 'cnn', 'title': 'Convolutional Neural Networks',
              'description': 'Image processing and computer vision'},
             {'id': 'rnn-lstm', 'title': 'RNN & LSTM', 'description': 'Sequential data and time series'},
@@ -82,17 +82,16 @@ TOPICS = {
             {'id': 'async', 'title': 'Async Programming', 'description': 'asyncio and concurrent programming'},
         ]
     },
-    'sql': {
-        'name': 'SQL & Databases',
-        'icon': '🗄️',
+    'ts': {
+        'name': 'Time Series',
+        'icon': '📈',
         'color': '#feca57',
         'subtopics': [
-            {'id': 'sql-basics', 'title': 'SQL Basics', 'description': 'SELECT, INSERT, UPDATE, DELETE'},
-            {'id': 'joins', 'title': 'SQL Joins', 'description': 'INNER, LEFT, RIGHT, FULL joins'},
-            {'id': 'aggregations', 'title': 'Aggregations & Groups',
-             'description': 'GROUP BY, HAVING, aggregate functions'},
-            {'id': 'indexes', 'title': 'Indexing & Performance', 'description': 'Query optimization'},
-            {'id': 'transactions', 'title': 'Transactions & ACID', 'description': 'Database consistency'},
+            {'id': 'seg-emb', 'title': 'Time series segmentation and Embeddings', 'description':
+                'Segmentation -> Normalization-> Embedding ->classify'},
+            {'id': 'ts-modeling', 'title': 'Time series Modeling', 'description':
+                'visualization, 1D Conv, Local Pattern Detection,Dimensionality Reduction'},
+
         ]
     }
 }
@@ -114,15 +113,21 @@ def topic_detail(topic_id):
 def content_detail(topic_id, subtopic_id):
     if topic_id in TOPICS:
         topic = TOPICS[topic_id]
+        # print(topic)
         subtopic = next((s for s in topic['subtopics'] if s['id'] == subtopic_id), None)
+        print(subtopic)
         if subtopic:
             # Check if this is the reduce-lr-plateau topic
             if subtopic_id == 'reduce-lr-plateau':
                 return render_template('reduce_lr_plateau.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             elif subtopic_id == 'neural-networks':
                 return render_template('neural-networks.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
-            elif subtopic_id=='optimizers':
-                return render_template('optimizers.html',topic=topic,subtopic=subtopic,topic_id=topic_id)
+            elif subtopic_id == 'optimizers':
+                return render_template('optimizers.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
+            elif subtopic_id=='ts-modeling':
+                return render_template('/time_series/ts_modeling.html',topic=topic,subtopic=subtopic,topic_id=topic_id)
+            elif subtopic_id == 'seg-emb':
+                return render_template('segmentation_embedding.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
     return "Content not found", 404
 

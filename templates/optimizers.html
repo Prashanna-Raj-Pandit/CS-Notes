@@ -1,393 +1,509 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Optimizers — Visual & Mathematical Guide</title>
-  <style>
-    :root{
-      --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#7c3aed; --accent-2:#06b6d4; --glass: rgba(255,255,255,0.03);
-      --mono: 'Courier New', monospace;
-    }
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071124 0%, #071827 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; color:#e6eef6}
-    .app{max-width:1100px;margin:28px auto;padding:20px}
-    header{display:flex;align-items:center;gap:16px}
-    h1{margin:0;font-size:20px}
-    p.lead{color:var(--muted);margin-top:4px}
-    .grid{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:18px}
-    .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 24px rgba(2,6,23,0.6);}
-    .controls{display:flex;flex-direction:column;gap:10px}
-    label{font-size:13px;color:var(--muted)}
-    select,input[type=range],input[type=number]{width:100%;margin-top:6px;background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;color:inherit}
-    .buttons{display:flex;gap:8px;margin-top:8px}
-    button{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:none;color:white;padding:8px 10px;border-radius:8px;cursor:pointer}
-    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
-    .vis{background:linear-gradient(180deg, rgba(12,16,24,0.5), rgba(6,10,18,0.5));border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
-    canvas{width:100%;height:420px;border-radius:8px;background:linear-gradient(180deg,#041226,#071526)}
-    .legend{display:flex;gap:8px;flex-wrap:wrap}
-    .legend .item{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
-    .dot{width:14px;height:8px;border-radius:6px}
-    pre{background:rgba(255,255,255,0.02);padding:12px;border-radius:8px;overflow:auto;font-family:var(--mono);font-size:13px}
-    .section{margin-top:18px}
-    .math{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:10px;border-radius:8px}
-    footer{color:var(--muted);font-size:13px;margin-top:14px}
-    a.inline{color:var(--accent);text-decoration:none}
-    .row{display:flex;gap:8px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Optimizers in Deep Learning</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            line-height: 1.8;
+            color: #2c3e50;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 60px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #1a1a1a;
+            margin-bottom: 30px;
+            text-align: center;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 2em;
+            color: #2c3e50;
+            margin-top: 50px;
+            margin-bottom: 25px;
+            border-left: 5px solid #3498db;
+            padding-left: 15px;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            color: #34495e;
+            margin-top: 35px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            margin-bottom: 20px;
+            text-align: justify;
+            font-size: 1.1em;
+        }
+
+        .equation {
+            background-color: #ecf0f1;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            text-align: center;
+            border-left: 4px solid #3498db;
+        }
+
+        .graph-container {
+            margin: 40px 0;
+            text-align: center;
+        }
+
+        .graph-container canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+
+        .note strong {
+            color: #856404;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 1em;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: left;
+        }
+
+        .comparison-table th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .feature-box {
+            background-color: #e8f4f8;
+            border: 1px solid #3498db;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 8px;
+        }
+
+        .problem-box {
+            background-color: #ffe8e8;
+            border: 1px solid #e74c3c;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 8px;
+        }
+
+        ul, ol {
+            margin-left: 40px;
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 12px;
+            font-size: 1.05em;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e74c3c;
+        }
+
+        .intro-section {
+            font-size: 1.15em;
+            line-height: 2;
+            color: #555;
+            margin-bottom: 40px;
+            padding: 30px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
 </head>
 <body>
-  <div class="app">
-    <header>
-      <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:700">OP</div>
-      <div>
-        <h1>Optimizers — visual, mathematical & logical guide</h1>
-        <p class="lead">Interactive demo + concise math for common optimizers: SGD, Momentum, Nesterov, Adagrad, RMSProp, Adam. Tweak params and watch trajectories on a 2D loss surface.</p>
-      </div>
-    </header>
+    <div class="container">
+        <h1>Understanding Optimizers in Deep Learning: A Comprehensive Guide</h1>
 
-    <div class="grid">
-      <div class="card">
-        <h3>Controls</h3>
-        <div class="controls">
-          <label>Optimizer
-            <select id="opt">
-              <option>SGD</option>
-              <option>Momentum</option>
-              <option>Nesterov</option>
-              <option>Adagrad</option>
-              <option>RMSProp</option>
-              <option>Adam</option>
-            </select>
-          </label>
-
-          <label>Learning rate (η)
-            <input id="lr" type="number" step="0.001" min="0.0001" max="1" value="0.05">
-          </label>
-
-          <label>Momentum μ (for Momentum/Nesterov)
-            <input id="mu" type="number" step="0.01" min="0" max="0.999" value="0.9">
-          </label>
-
-          <label>β1 (Adam) &nbsp;&nbsp;β2 (Adam)
-            <div class="row">
-              <input id="b1" type="number" step="0.001" min="0.0" max="0.999" value="0.9">
-              <input id="b2" type="number" step="0.001" min="0.0" max="0.9999" value="0.999">
-            </div>
-          </label>
-
-          <label>ε (stability)
-            <input id="eps" type="number" step="1e-6" min="1e-9" max="1e-2" value="1e-8">
-          </label>
-
-          <div class="row buttons">
-            <button id="run">Run</button>
-            <button id="step" class="ghost">Step</button>
-            <button id="reset" class="ghost">Reset</button>
-            <button id="randomize" class="ghost">Random init</button>
-          </div>
-
-          <div style="margin-top:8px; color:var(--muted);font-size:13px">Status: <span id="status">idle</span></div>
+        <div class="intro-section">
+            <p>Imagine you're standing at the peak of a mountain range, blindfolded, and your goal is to reach the lowest valley. You can only feel the slope beneath your feet and take steps accordingly. This is essentially what an optimizer does in deep learning—it navigates the complex landscape of a neural network's loss function, searching for the lowest point where the model performs best. This journey from random initialization to optimal performance is at the heart of how machines learn, and optimizers are the engines that drive this learning process.</p>
         </div>
 
-        <div class="section">
-          <h4>Quick math cheatsheet</h4>
-          <div class="math">
-            <strong>SGD</strong>: \(\theta_{t+1} = \theta_t - \eta \nabla f(\theta_t)\)<br><br>
-            <strong>Momentum</strong>: \(v_t = \mu v_{t-1} - \eta \nabla f(\theta_t)\), \(\theta_{t+1} = \theta_t + v_t\)<br><br>
-            <strong>Nesterov</strong>: lookahead gradient at \(\theta_t + \mu v_{t-1}\): \(v_t = \mu v_{t-1} - \eta \nabla f(\theta_t + \mu v_{t-1})\)
-            <br><br>
-            <strong>Adagrad</strong>: accumulate squared grads: \(G_t = G_{t-1} + g_t^2\); \(\theta_{t+1} = \theta_t - \eta\, g_t / (\sqrt{G_t}+\epsilon)\)
-            <br><br>
-            <strong>RMSProp</strong>: moving average of squared grads: \(s_t = \beta s_{t-1} + (1-\beta) g_t^2\); \(\theta_{t+1} = \theta_t - \eta\, g_t / (\sqrt{s_t}+\epsilon)\)
-            <br><br>
-            <strong>Adam</strong>: \(m_t=\beta_1 m_{t-1}+(1-\beta_1)g_t\), \(v_t=\beta_2 v_{t-1}+(1-\beta_2)g_t^2\), bias-corrected \(\hat m_t,\hat v_t\); \(\theta_{t+1}=\theta_t-\eta\,\hat m_t/(\sqrt{\hat v_t}+\epsilon)\)
-          </div>
+        <h2>What is an Optimizer?</h2>
+
+        <p>An optimizer is an algorithm or method used to adjust the parameters (weights and biases) of a neural network to minimize the loss function. Think of the loss function as a measure of how wrong your model's predictions are. The lower the loss, the better your model performs. The optimizer's job is to find the set of parameters that produces the smallest possible loss value.</p>
+
+        <p>In mathematical terms, if we have a loss function <code>L(θ)</code> where <code>θ</code> represents all the parameters of our neural network, the optimizer tries to find the value of <code>θ</code> that minimizes <code>L(θ)</code>. This is fundamentally an optimization problem, and the optimizer is our tool to solve it.</p>
+
+        <p>During training, the optimizer receives gradient information from backpropagation—essentially, the direction and magnitude of change needed for each parameter to reduce the loss. The optimizer then decides how much to actually update each parameter. Different optimizers use different strategies to make these decisions, and that's what distinguishes one optimizer from another.</p>
+
+        <h2>Why Do We Need Optimizers?</h2>
+
+        <p>The need for optimizers becomes clear when we understand the scale and complexity of modern neural networks. A typical deep learning model might have millions or even billions of parameters. Manually adjusting these parameters is not just impractical—it's impossible. We need an automated, systematic way to find good parameter values.</p>
+
+        <p>But why can't we just calculate the optimal parameters directly? The answer lies in the nature of neural networks. The relationship between parameters and loss is highly non-linear and non-convex. There's no closed-form solution, no simple equation we can solve to get the answer. The loss landscape resembles a complex mountain range with multiple peaks and valleys, saddle points, plateaus, and ravines. Finding the global minimum (the absolute lowest point) is computationally intractable for large networks.</p>
+
+        <p>Optimizers provide several critical benefits. First, they make learning feasible by breaking down the enormous optimization problem into small, iterative steps. Instead of trying to find the perfect parameters in one shot, optimizers improve the parameters gradually, batch by batch, epoch by epoch. Second, they help navigate the treacherous loss landscape efficiently. A good optimizer can avoid getting stuck in poor local minima, traverse plateaus quickly, and maintain stability throughout training. Third, they enable us to work with massive datasets through techniques like stochastic gradient descent, where we update parameters using small batches of data rather than the entire dataset at once.</p>
+
+        <p>Without effective optimizers, deep learning as we know it wouldn't exist. The models would either fail to learn, take impossibly long to train, or produce poor results. The renaissance of deep learning over the past decade has been powered not just by more data and compute, but also by better optimizers that can train increasingly complex models effectively.</p>
+
+        <h2>The Mathematics Behind Optimization</h2>
+
+        <p>Before diving into specific optimizer types, let's establish the mathematical foundation. The core concept is gradient descent, which forms the basis of most modern optimizers.</p>
+
+        <h3>Gradient Descent Principle</h3>
+
+        <p>The gradient of the loss function with respect to parameters tells us the direction of steepest ascent. To minimize the loss, we move in the opposite direction—the direction of steepest descent. Mathematically, this is expressed as:</p>
+
+        <div class="equation">
+            θ<sub>t+1</sub> = θ<sub>t</sub> - η∇L(θ<sub>t</sub>)
         </div>
 
-        <div class="section">
-          <h4>Why different optimizers?</h4>
-          <p style="color:var(--muted);font-size:14px">Different optimizers handle noisy gradients, varying curvature, and sparse updates differently. Visual intuition: <em>SGD</em> moves straight down; <em>Momentum</em> smooths and accelerates along consistent directions; <em>Adaptive</em> methods (Adagrad/RMSProp/Adam) scale updates per-parameter based on past gradients.</p>
+        <p>Where <code>θ<sub>t</sub></code> represents the parameters at time step <code>t</code>, <code>η</code> (eta) is the learning rate that controls the step size, and <code>∇L(θ<sub>t</sub>)</code> is the gradient of the loss function at the current parameters. This simple equation is profoundly important—it's the fundamental update rule that enables neural networks to learn.</p>
+
+        <p>The learning rate is a hyperparameter that deserves special attention. Too large, and the optimizer might overshoot the minimum, bouncing around chaotically or even diverging. Too small, and training becomes painfully slow, potentially getting stuck in suboptimal regions. Choosing the right learning rate is both an art and a science, and many modern optimizers include adaptive mechanisms to adjust learning rates automatically.</p>
+
+        <h2>Types of Optimizers</h2>
+
+        <p>Over the years, researchers have developed numerous optimizer variants, each designed to address specific challenges in training neural networks. Let's explore the most important ones, understanding their mechanics, strengths, and weaknesses.</p>
+
+        <h3>1. Stochastic Gradient Descent (SGD)</h3>
+
+        <p>Stochastic Gradient Descent is the grandfather of all optimizers. It's simple, robust, and surprisingly effective even today. The term "stochastic" refers to the use of random mini-batches of data rather than the entire dataset to compute gradients.</p>
+
+        <div class="equation">
+            θ<sub>t+1</sub> = θ<sub>t</sub> - η∇L(θ<sub>t</sub>; x<sup>(i:i+n)</sup>, y<sup>(i:i+n)</sup>)
         </div>
 
-      </div>
+        <p>Here, instead of computing the gradient over all training examples, we compute it over a small batch <code>(x<sup>(i:i+n)</sup>, y<sup>(i:i+n)</sup>)</code>. This introduces noise into the gradient estimates, but it makes computation much faster and allows the optimizer to update parameters more frequently.</p>
 
-      <div class="vis card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <h3 style="margin:0">Loss surface & optimizer trajectories</h3>
-          <div class="legend" id="legend"></div>
-        </div>
-        <canvas id="c"></canvas>
-
-        <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
-          <div style="color:var(--muted)">Function: rotated quadratic<br>\(f(x,y)=ax^2+by^2+\text{cross-term}\)</div>
-          <div style="color:var(--muted);font-size:13px">Tip: try Adam vs SGD with higher learning rate to see differences</div>
+        <div class="feature-box">
+            <h4>Features of SGD:</h4>
+            <ul>
+                <li><strong>Simplicity:</strong> The algorithm is straightforward to implement and understand, requiring minimal computational overhead beyond the gradient computation itself.</li>
+                <li><strong>Low Memory Footprint:</strong> SGD doesn't maintain any additional state or history, making it memory-efficient even for very large models.</li>
+                <li><strong>Generalization:</strong> The noise introduced by mini-batch sampling can actually help, acting as a form of regularization that prevents overfitting and helps find flatter minima that generalize better.</li>
+                <li><strong>Well-Understood Convergence:</strong> Extensive theoretical analysis exists for SGD, providing guarantees under certain conditions.</li>
+            </ul>
         </div>
 
-        <div class="section">
-          <h4>Detailed explanations</h4>
-          <p style="color:var(--muted)"><strong>SGD</strong> — simplest: follow negative gradient. Good for large datasets and online updates but noisy. <br>
-<strong>Momentum</strong> — maintains velocity vector to accelerate in consistent descent directions and damp oscillations in high curvature directions. <br>
-<strong>Nesterov</strong> — computes gradient at the "lookahead" position for a more informed update. <br>
-<strong>Adagrad</strong> — adapts per-parameter learning rates using sum of squares; useful for sparse data but may decay learning rates too much. <br>
-<strong>RMSProp</strong> — fixes Adagrad by using exponential moving average of squared grads. <br>
-<strong>Adam</strong> — combines Momentum (first moment) + RMSProp (second moment) with bias-correction; typically robust and fast.</p>
+        <div class="problem-box">
+            <h4>Problems with SGD:</h4>
+            <ul>
+                <li><strong>Choosing Learning Rate:</strong> Requires careful tuning and often benefits from learning rate schedules.</li>
+                <li><strong>Same Learning Rate for All Parameters:</strong> All parameters are updated with the same learning rate, which may not be appropriate for parameters that receive vastly different gradient magnitudes.</li>
+                <li><strong>Saddle Points:</strong> Can get stuck at saddle points where gradients are small but the point is not a minimum.</li>
+                <li><strong>Slow Convergence:</strong> On complex loss surfaces, especially those with ravines or elongated valleys, SGD can oscillate and make slow progress.</li>
+            </ul>
         </div>
 
-      </div>
-    </div>
+        <h3>2. SGD with Momentum</h3>
 
-    <div class="card section">
-      <h3>Deep dive: math + logic (short)</h3>
-      <div style="display:flex;gap:18px">
-        <div style="flex:1">
-          <h4>Momentum intuition</h4>
-          <p style="color:var(--muted)">Momentum accumulates an exponentially decaying moving average of past gradients. It acts like a ball rolling down a valley — it keeps velocity where gradients are aligned and damps oscillations.</p>
+        <p>Momentum is a simple but powerful modification to SGD. Inspired by physics, it adds a velocity term that accumulates gradients over time, allowing the optimizer to build up speed in consistent directions and dampen oscillations.</p>
+
+        <div class="equation">
+            v<sub>t</sub> = γv<sub>t-1</sub> + η∇L(θ<sub>t</sub>)<br><br>
+            θ<sub>t+1</sub> = θ<sub>t</sub> - v<sub>t</sub>
         </div>
-        <div style="flex:1">
-          <h4>Adaptive methods</h4>
-          <p style="color:var(--muted)">Adagrad/RMSProp/Adam change the step size per-parameter: parameters with frequently large gradients get smaller updates; rare parameters get larger ones. This helps with sparse features and ill-conditioned problems.</p>
+
+        <p>The momentum coefficient <code>γ</code> (typically 0.9) determines how much of the previous velocity is retained. This creates an exponentially weighted moving average of gradients. When gradients point in the same direction consistently, momentum accelerates. When they oscillate, momentum smooths them out.</p>
+
+        <div class="feature-box">
+            <h4>Features of Momentum:</h4>
+            <ul>
+                <li><strong>Faster Convergence:</strong> Accelerates in directions of consistent gradients, leading to faster progress toward minima.</li>
+                <li><strong>Dampens Oscillations:</strong> Reduces zigzagging behavior in ravines or narrow valleys.</li>
+                <li><strong>Escapes Local Minima:</strong> The accumulated velocity can help the optimizer roll past small local minima and saddle points.</li>
+                <li><strong>Better for Deep Networks:</strong> Particularly effective in deep networks where gradients might have high variance.</li>
+            </ul>
         </div>
-      </div>
 
-      <div class="section">
-        <h4>Code: discrete updates (pseudocode)</h4>
-        <pre>
-# SGD
-theta -= lr * grad
+        <div class="problem-box">
+            <h4>Problems with Momentum:</h4>
+            <ul>
+                <li><strong>Overshooting:</strong> Can overshoot minima due to accumulated velocity, especially near convergence.</li>
+                <li><strong>Additional Hyperparameter:</strong> Requires tuning the momentum coefficient γ in addition to the learning rate.</li>
+                <li><strong>Still Uniform Learning Rate:</strong> Doesn't address the issue of different parameters needing different learning rates.</li>
+            </ul>
+        </div>
 
-# Momentum
-v = mu * v - lr * grad
-theta += v
+        <h3>3. Nesterov Accelerated Gradient (NAG)</h3>
 
-# Nesterov
-look = theta + mu * v
-g = grad(look)
-v = mu*v - lr * g
-theta += v
+        <p>Nesterov Momentum is a clever variant that looks ahead before computing gradients. Instead of computing the gradient at the current position, it computes it at the approximate future position determined by momentum.</p>
 
-# RMSProp
-s = beta * s + (1-beta) * grad**2
-theta -= lr * grad / (sqrt(s) + eps)
+        <div class="equation">
+            v<sub>t</sub> = γv<sub>t-1</sub> + η∇L(θ<sub>t</sub> - γv<sub>t-1</sub>)<br><br>
+            θ<sub>t+1</sub> = θ<sub>t</sub> - v<sub>t</sub>
+        </div>
 
-# Adam
-m = beta1*m + (1-beta1)*grad
-v = beta2*v + (1-beta2)*grad**2
-m_hat = m/(1-beta1**t)
-v_hat = v/(1-beta2**t)
-theta -= lr * m_hat / (sqrt(v_hat) + eps)
-        </pre>
-      </div>
+        <p>The key difference is <code>∇L(θ<sub>t</sub> - γv<sub>t-1</sub>)</code>—we evaluate the gradient after applying momentum. This "look-ahead" makes NAG more responsive to the geometry of the loss surface.</p>
 
-      <footer>Want a downloadable version or additional optimizers (AdamW, Nadam)? Click "Random init" then choose optimizer and Run. You can also tweak the loss surface inside the code.</footer>
-    </div>
-  </div>
+        <div class="feature-box">
+            <h4>Features of NAG:</h4>
+            <ul>
+                <li><strong>Anticipatory Updates:</strong> Makes more informed updates by considering where momentum is taking us.</li>
+                <li><strong>Better Theoretical Guarantees:</strong> Provably faster convergence rates for convex optimization.</li>
+                <li><strong>Reduced Overshooting:</strong> Better at slowing down when approaching minima compared to standard momentum.</li>
+            </ul>
+        </div>
 
-<script>
-// --- Simple 2D optimization simulator for visualization ---
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-canvas.width = canvas.clientWidth * devicePixelRatio;
-canvas.height = 420 * devicePixelRatio;
-ctx.scale(devicePixelRatio, devicePixelRatio);
+        <h3>4. Adagrad (Adaptive Gradient Algorithm)</h3>
 
-// UI
-const optSel = document.getElementById('opt');
-const lrIn = document.getElementById('lr');
-const muIn = document.getElementById('mu');
-const b1In = document.getElementById('b1');
-const b2In = document.getElementById('b2');
-const epsIn = document.getElementById('eps');
-const runBtn = document.getElementById('run');
-const stepBtn = document.getElementById('step');
-const resetBtn = document.getElementById('reset');
-const randBtn = document.getElementById('randomize');
-const status = document.getElementById('status');
+        <p>Adagrad represents a major conceptual shift: different parameters can have different learning rates. It adapts the learning rate for each parameter based on the history of gradients for that parameter.</p>
 
-let running = false;
-let state = {};
+        <div class="equation">
+            G<sub>t</sub> = G<sub>t-1</sub> + (∇L(θ<sub>t</sub>))²<br><br>
+            θ<sub>t+1</sub> = θ<sub>t</sub> - (η / √(G<sub>t</sub> + ε)) · ∇L(θ<sub>t</sub>)
+        </div>
 
-// Loss surface parameters (rotated quadratic)
-const A = [[3.0, 1.2],[1.2, 0.8]]; // symmetric positive-definite
-function loss(p){
-  const x=p[0], y=p[1];
-  return 0.5*(A[0][0]*x*x + 2*A[0][1]*x*y + A[1][1]*y*y);
-}
-function grad(p){
-  const x=p[0], y=p[1];
-  // grad = A * [x;y]
-  return [A[0][0]*x + A[0][1]*y, A[0][1]*x + A[1][1]*y];
-}
+        <p>Here, <code>G<sub>t</sub></code> accumulates the squared gradients for each parameter. Parameters with large accumulated gradients get smaller learning rates, while parameters with small accumulated gradients get larger learning rates. The small constant <code>ε</code> (typically 1e-8) prevents division by zero.</p>
 
-function initState(){
-  state.theta = [2.4, -1.6];
-  state.v = [0,0];
-  state.s = [0,0];
-  state.m = [0,0];
-  state.vt = [0,0];
-  state.t = 0;
-  state.path = [state.theta.slice()];
-}
-initState();
+        <div class="feature-box">
+            <h4>Features of Adagrad:</h4>
+            <ul>
+                <li><strong>Parameter-Specific Learning Rates:</strong> Automatically adapts learning rates individually for each parameter.</li>
+                <li><strong>Excellent for Sparse Data:</strong> Particularly effective when dealing with sparse features, as infrequently occurring features get larger updates.</li>
+                <li><strong>No Learning Rate Tuning:</strong> Works well with default learning rate (typically 0.01), reducing hyperparameter tuning burden.</li>
+            </ul>
+        </div>
 
-function step(){
-  const opt = optSel.value;
-  const lr = parseFloat(lrIn.value);
-  const mu = parseFloat(muIn.value);
-  const b1 = parseFloat(b1In.value);
-  const b2 = parseFloat(b2In.value);
-  const eps = parseFloat(epsIn.value);
+        <div class="problem-box">
+            <h4>Problems with Adagrad:</h4>
+            <ul>
+                <li><strong>Aggressive Learning Rate Decay:</strong> The accumulated squared gradients grow monotonically, causing learning rates to shrink continuously and eventually become infinitesimally small.</li>
+                <li><strong>Premature Convergence:</strong> Training can stop making progress before reaching a good solution because learning rates have decayed too much.</li>
+                <li><strong>Memory Requirements:</strong> Needs to maintain a running sum of squared gradients for every parameter.</li>
+            </ul>
+        </div>
 
-  state.t += 1;
-  const theta = state.theta;
-  const g = grad(theta);
+        <h3>5. RMSprop (Root Mean Square Propagation)</h3>
 
-  if(opt==='SGD'){
-    theta[0] -= lr * g[0];
-    theta[1] -= lr * g[1];
-  }else if(opt==='Momentum'){
-    state.v[0] = mu*state.v[0] - lr*g[0];
-    state.v[1] = mu*state.v[1] - lr*g[1];
-    theta[0] += state.v[0]; theta[1] += state.v[1];
-  }else if(opt==='Nesterov'){
-    const look = [theta[0] + mu*state.v[0], theta[1] + mu*state.v[1]];
-    const g2 = grad(look);
-    state.v[0] = mu*state.v[0] - lr*g2[0];
-    state.v[1] = mu*state.v[1] - lr*g2[1];
-    theta[0] += state.v[0]; theta[1] += state.v[1];
-  }else if(opt==='Adagrad'){
-    state.s[0] += g[0]*g[0]; state.s[1] += g[1]*g[1];
-    theta[0] -= lr * g[0] / (Math.sqrt(state.s[0]) + eps);
-    theta[1] -= lr * g[1] / (Math.sqrt(state.s[1]) + eps);
-  }else if(opt==='RMSProp'){
-    const beta = 0.9;
-    state.s[0] = beta*state.s[0] + (1-beta)*g[0]*g[0];
-    state.s[1] = beta*state.s[1] + (1-beta)*g[1]*g[1];
-    theta[0] -= lr * g[0] / (Math.sqrt(state.s[0]) + eps);
-    theta[1] -= lr * g[1] / (Math.sqrt(state.s[1]) + eps);
-  }else if(opt==='Adam'){
-    state.m[0] = b1*state.m[0] + (1-b1)*g[0];
-    state.m[1] = b1*state.m[1] + (1-b1)*g[1];
-    state.vt[0] = b2*state.vt[0] + (1-b2)*g[0]*g[0];
-    state.vt[1] = b2*state.vt[1] + (1-b2)*g[1]*g[1];
-    const mhat0 = state.m[0]/(1-Math.pow(b1,state.t));
-    const mhat1 = state.m[1]/(1-Math.pow(b1,state.t));
-    const vhat0 = state.vt[0]/(1-Math.pow(b2,state.t));
-    const vhat1 = state.vt[1]/(1-Math.pow(b2,state.t));
-    theta[0] -= lr * mhat0 / (Math.sqrt(vhat0) + eps);
-    theta[1] -= lr * mhat1 / (Math.sqrt(vhat1) + eps);
-  }
+        <p>RMSprop was developed to address Adagrad's aggressive learning rate decay. Instead of accumulating all past squared gradients, it maintains an exponentially decaying average, giving more weight to recent gradients.</p>
 
-  state.path.push(theta.slice());
-}
+        <div class="equation">
+            E[g²]<sub>t</sub> = βE[g²]<sub>t-1</sub> + (1-β)(∇L(θ<sub>t</sub>))²<br><br>
+            θ<sub>t+1</sub> = θ<sub>t</sub> - (η / √(E[g²]<sub>t</sub> + ε)) · ∇L(θ<sub>t</sub>)
+        </div>
 
-function draw(){
-  // clear
-  ctx.clearRect(0,0,canvas.clientWidth,420);
-  // draw contours
-  const W = canvas.clientWidth; const H = 420;
-  // map from [-3,3]x[-3,3] to canvas
-  function toPixel(p){
-    const x = (p[0]+3)/6 * W;
-    const y = (1-(p[1]+3)/6) * H;
-    return [x,y];
-  }
+        <p>The decay rate <code>β</code> (typically 0.9) controls how much history to retain. This modification allows RMSprop to continue learning even after many iterations, making it suitable for non-stationary problems and recurrent neural networks.</p>
 
-  // contours: compute values on grid
-  const cols = 40, rows=40;
-  for(let i=0;i<=cols;i++){
-    for(let j=0;j<=rows;j++){
-      const x = -3 + 6*(i/cols);
-      const y = -3 + 6*(j/rows);
-      const v = loss([x,y]);
-      const px = (x+3)/6*W; const py=(1-(y+3)/6)*H;
-      const alpha = Math.min(0.9, Math.log(1+v*5));
-      ctx.fillStyle = `rgba(200,230,255,${0.01+0.02*Math.log(1+v)})`;
-      // draw faint grid of values - optional
-    }
-  }
+        <div class="feature-box">
+            <h4>Features of RMSprop:</h4>
+            <ul>
+                <li><strong>Resolves Adagrad's Decay Problem:</strong> Learning rates don't vanish, allowing continued learning throughout training.</li>
+                <li><strong>Effective for RNNs:</strong> Works particularly well with recurrent neural networks and non-stationary objectives.</li>
+                <li><strong>Automatic Learning Rate Scaling:</strong> Adapts to the scale of gradients automatically.</li>
+                <li><strong>Works Well in Practice:</strong> Has become a default choice for many practitioners, especially in computer vision.</li>
+            </ul>
+        </div>
 
-  // draw axes
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
+        <div class="problem-box">
+            <h4>Problems with RMSprop:</h4>
+            <ul>
+                <li><strong>Additional Hyperparameter:</strong> Requires tuning the decay rate β.</li>
+                <li><strong>Learning Rate Still Matters:</strong> While it adapts learning rates, the base learning rate still needs to be set appropriately.</li>
+                <li><strong>No Bias Correction:</strong> Unlike Adam, RMSprop doesn't include bias correction for the running averages.</li>
+            </ul>
+        </div>
 
-  // draw contour lines analytically (ellipses)
-  ctx.strokeStyle='rgba(255,255,255,0.06)';
-  for(let a=0.2;a<4;a+=0.3){
-    ctx.beginPath();
-    for(let t=0;t<=Math.PI*2+0.1;t+=0.04){
-      // param ellipse for level set x^T A x = c
-      // compute points by diagonalizing A (approx)
-      const c=a;
-      // naive: sample x,y in circle and transform
-      const u = Math.cos(t), v= Math.sin(t);
-      // scale circle by sqrt(c)
-      let X = [u*Math.sqrt(c), v*Math.sqrt(c)];
-      // solve A^{-1/2} * X? simplify by using identity: apply small rotation
-      // use a simple affine transform to make ellipse: x = [1.2 0.6;0 0.9] * X
-      const px = 1.2*X[0] + 0.6*X[1];
-      const py = 0*X[0] + 0.9*X[1];
-      const ppx = toPixel([px,py]);
-      if(t===0) ctx.moveTo(ppx[0],ppx[1]); else ctx.lineTo(ppx[0],ppx[1]);
-    }
-    ctx.closePath(); ctx.stroke();
-  }
+        <h3>6. Adam (Adaptive Moment Estimation)</h3>
 
-  // draw path
-  ctx.lineWidth=2;
-  const path = state.path;
-  ctx.beginPath();
-  for(let i=0;i<path.length;i++){
-    const px = toPixel(path[i])[0]; const py = toPixel(path[i])[1];
-    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
-  }
-  ctx.strokeStyle = 'rgba(124,58,237,0.95)'; ctx.stroke();
+        <p>Adam combines the best ideas from momentum and RMSprop. It maintains both a running average of gradients (first moment, like momentum) and a running average of squared gradients (second moment, like RMSprop). It has become the default optimizer for many deep learning applications.</p>
 
-  // draw current point
-  const cur = path[path.length-1];
-  const cpx = toPixel(cur);
-  ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(cpx[0],cpx[1],6,0,Math.PI*2); ctx.fill();
+        <div class="equation">
+            m<sub>t</sub> = β₁m<sub>t-1</sub> + (1-β₁)∇L(θ<sub>t</sub>)<br><br>
+            v<sub>t</sub> = β₂v<sub>t-1</sub> + (1-β₂)(∇L(θ<sub>t</sub>))²<br><br>
+            m̂<sub>t</sub> = m<sub>t</sub> / (1-β₁ᵗ)<br><br>
+            v̂<sub>t</sub> = v<sub>t</sub> / (1-β₂ᵗ)<br><br>
+            θ<sub>t+1</sub> = θ<sub>t</sub> - (η / √(v̂<sub>t</sub> + ε)) · m̂<sub>t</sub>
+        </div>
 
-  // labels
-  ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.font='12px sans-serif';
-  ctx.fillText(`x=${cur[0].toFixed(3)}`, 10, 18);
-  ctx.fillText(`y=${cur[1].toFixed(3)}`, 10, 34);
-  ctx.fillText(`loss=${loss(cur).toFixed(4)}`, 10, 50);
-}
+        <p>The bias correction terms <code>m̂<sub>t</sub></code> and <code>v̂<sub>t</sub></code> are crucial. Since <code>m</code> and <code>v</code> are initialized at zero, they're biased toward zero early in training. The bias correction compensates for this, especially important in the first few iterations. Default values are <code>β₁=0.9</code>, <code>β₂=0.999</code>, <code>ε=1e-8</code>, and <code>η=0.001</code>.</p>
 
-let raf;
-function loop(){
-  if(running){
-    for(let k=0;k<3;k++) step(); // advance a few steps per frame
-    draw();
-    raf = requestAnimationFrame(loop);
-  }
-}
+        <div class="feature-box">
+            <h4>Features of Adam:</h4>
+            <ul>
+                <li><strong>Combines Multiple Techniques:</strong> Benefits from both momentum and adaptive learning rates.</li>
+                <li><strong>Bias Correction:</strong> Corrects for initialization bias, making it reliable from the start of training.</li>
+                <li><strong>Robust to Hyperparameters:</strong> Default hyperparameters work well across a wide range of problems.</li>
+                <li><strong>Computationally Efficient:</strong> Despite maintaining two moment estimates, it's still efficient and practical.</li>
+                <li><strong>Memory Efficient Per Parameter:</strong> Only needs to store two scalars per parameter.</li>
+                <li><strong>Suitable for Large Datasets:</strong> Works well with massive datasets and high-dimensional parameter spaces.</li>
+            </ul>
+        </div>
 
-draw();
+        <div class="problem-box">
+            <h4>Problems with Adam:</h4>
+            <ul>
+                <li><strong>Generalization Gap:</strong> Some studies suggest Adam can sometimes generalize worse than SGD with momentum, particularly in certain computer vision tasks.</li>
+                <li><strong>Convergence Issues:</strong> In some scenarios, Adam can fail to converge to optimal solutions that SGD would find.</li>
+                <li><strong>Memory Overhead:</strong> Requires storing both first and second moment estimates for all parameters.</li>
+                <li><strong>Learning Rate Sensitivity:</strong> While robust, the learning rate still significantly affects performance.</li>
+            </ul>
+        </div>
 
-runBtn.onclick = ()=>{
-  running = !running;
-  runBtn.textContent = running? 'Pause':'Run';
-  status.textContent = running? 'running':'idle';
-  if(running) loop(); else cancelAnimationFrame(raf);
-}
+        <h3>7. AdamW (Adam with Weight Decay)</h3>
 
-stepBtn.onclick = ()=>{ step(); draw(); }
-resetBtn.onclick = ()=>{ initState(); draw(); }
-randBtn.onclick = ()=>{ state.theta = [ (Math.random()*2-1)*3, (Math.random()*2-1)*3 ]; state.path=[state.theta.slice()]; draw(); }
+        <p>AdamW is a modification of Adam that correctly implements L2 regularization (weight decay). The original Adam implementation couples weight decay with the adaptive learning rate, which can be suboptimal. AdamW decouples them.</p>
 
-// show legend
-const legend = document.getElementById('legend');
-legend.innerHTML = `<div class="item"><div class="dot" style="background:linear-gradient(90deg,#7c3aed,#06b6d4)"></div> trajectory</div>`;
+        <div class="equation">
+            m<sub>t</sub> = β₁m<sub>t-1</sub> + (1-β₁)∇L(θ<sub>t</sub>)<br><br>
+            v<sub>t</sub> = β₂v<sub>t-1</sub> + (1-β₂)(∇L(θ<sub>t</sub>))²<br><br>
+            m̂<sub>t</sub> = m<sub>t</sub> / (1-β₁ᵗ)<br><br>
+            v̂<sub>t</sub> = v<sub>t</sub> / (1-β₂ᵗ)<br><br>
+            θ<sub>t+1</sub> = θ<sub>t</sub> - η[(m̂<sub>t</sub> / √(v̂<sub>t</sub> + ε)) + λθ<sub>t</sub>]
+        </div>
 
-// math rendering: attempt to use MathJax if present
-(function(){
-  if(window.MathJax){ MathJax.typesetPromise(); }
-})();
-</script>
+        <p>The key difference is the weight decay term <code>λθ<sub>t</sub></code> is added directly to the update, rather than being part of the gradient. This seemingly small change has significant implications for how regularization interacts with the adaptive learning rate.</p>
 
-<!-- MathJax for rendering math (requires internet access) -->
-<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-</body>
-</html>
+        <div class="feature-box">
+            <h4>Features of AdamW:</h4>
+            <ul>
+                <li><strong>Proper Regularization:</strong> Implements weight decay correctly, leading to better generalization.</li>
+                <li><strong>Improved Performance:</strong> Often achieves better results than Adam, particularly in transformer models and NLP tasks.</li>
+                <li><strong>Better Hyperparameter Decoupling:</strong> Learning rate and weight decay can be tuned more independently.</li>
+            </ul>
+        </div>
+
+        <h3>8. Nadam (Nesterov-accelerated Adam)</h3>
+
+        <p>Nadam combines Adam with Nesterov momentum, incorporating the look-ahead aspect of NAG into Adam's update rule.</p>
+
+        <div class="equation">
+            m<sub>t</sub> = β₁m<sub>t-1</sub> + (1-β₁)∇L(θ<sub>t</sub>)<br><br>
+            v<sub>t</sub> = β₂v<sub>t-1</sub> + (1-β₂)(∇L(θ<sub>t</sub>))²<br><br>
+            m̂<sub>t</sub> = m<sub>t</sub> / (1-β₁ᵗ)<br><br>
+            v̂<sub>t</sub> = v<sub>t</sub> / (1-β₂ᵗ)<br><br>
+            θ<sub>t+1</sub> = θ<sub>t</sub> - (η / √(v̂<sub>t</sub> + ε)) · (β₁m̂<sub>t</sub> + [(1-β₁)∇L(θ<sub>t</sub>)]/(1-β₁ᵗ))
+        </div>
+
+        <div class="feature-box">
+            <h4>Features of Nadam:</h4>
+            <ul>
+                <li><strong>Faster Convergence:</strong> Often converges faster than Adam due to the look-ahead mechanism.</li>
+                <li><strong>Best of Both Worlds:</strong> Combines the benefits of Nesterov momentum with adaptive learning rates.</li>
+            </ul>
+        </div>
+
+        <h2>Comparative Analysis</h2>
+
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Optimizer</th>
+                    <th>Key Strength</th>
+                    <th>Best Use Case</th>
+                    <th>Memory Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>SGD</td>
+                    <td>Simplicity, good generalization</td>
+                    <td>Computer vision with proper tuning</td>
+                    <td>Low</td>
+                </tr>
+                <tr>
+                    <td>SGD + Momentum</td>
+                    <td>Faster convergence than plain SGD</td>
+                    <td>CNNs, image classification</td>
+                    <td>Low</td>
+                </tr>
+                <tr>
+                    <td>NAG</td>
+                    <td>Anticipatory updates</td>
+                    <td>Convex optimization problems</td>
+                    <td>Low</td>
+                </tr>
+                <tr>
+                    <td>Adagrad</td>
+                    <td>Great for sparse data</td>
+                    <td>NLP, sparse features</td>
+                    <td>Medium</td>
+                </tr>
+                <tr>
+                    <td>RMSprop</td>
+                    <td>Non-stationary objectives</td>
+                    <td>RNNs, online learning</td>
+                    <td>Medium</td>
+                </tr>
+                <tr>
+                    <td>Adam</td>
+                    <td>Robust, general-purpose</td>
+                    <td>Most deep learning tasks</td>
+                    <td>Medium</td>
+                </tr>
+                <tr>
+                    <td>AdamW</td>
+                    <td>Better regularization</td>
+                    <td>Transformers, NLP models</td>
+                    <td>Medium</td>
+                </tr>
+                <tr>
+                    <td>Nadam</td>
+                    <td>Fast convergence</td>
+                    <td>Tasks needing quick training</td>
+                    <td>Medium</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Understanding Convergence Behavior</h2>
+
+        <p>Different optimizers navigate the loss landscape in distinct ways. Imagine training a model on a simple quadratic loss function—a bowl-shaped surface. SGD would take a somewhat winding path down the bowl, its trajectory influenced by the noise in mini-batch gradients. With momentum, the optimizer builds up speed and cuts across the bowl more directly, arriving at the bottom faster. Adam would adjust its step size as it goes, taking larger steps when far from the minimum and smaller, more careful steps as it approaches.</p>
+
+        <p>On more complex, non-convex loss surfaces typical of deep neural networks, these differences become even more pronounced. SGD might explore more of the loss landscape, potentially finding flatter minima that generalize better to unseen data. Adam might converge faster but sometimes to sharper minima. This is why practitioners often experiment with multiple optimizers for a given problem.</p>
+
+        <div class="graph-container">
+            <canvas id="convergenceGraph" width="700" height="400"></canvas>
+            <p><em>Figure 1: Convergence comparison of different optimizers on a simple optimization problem</em></p>
+        </div>
+
+        <h2>How Optimizers Calculate Updates</h2>
+
+        <p>Let's walk through a concrete example of how Adam calculates a parameter update. Suppose we're training a neural network and we're at iteration t=100. For a particular weight parameter, the current value is θ=0.5, and the gradient we just computed is ∇L=0.3.</p>
+
+        <p><strong>Step 1: Update First Moment (Gradient Average)</strong><br>
+        Starting with m₉₉=0.2, we compute:<br>
+        m₁₀₀ = 0.9 × 0.2 + 0.1 × 0.3 = 0.18 + 0.03 = 0.21</p>

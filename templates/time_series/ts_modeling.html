@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Series Modeling with 1D CNN: Complete Mathematical Walkthrough</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            line-height: 1.7;
+            color: #2c3e50;
+            background: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 50px 60px;
+            padding-bottom: 100px;
+        }
+
+        h2 {
+            color: #1a1a1a;
+            font-size: 2em;
+            margin: 50px 0 25px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e1e4e8;
+            font-weight: 600;
+        }
+
+        h3 {
+            color: #333;
+            font-size: 1.5em;
+            margin: 35px 0 18px 0;
+            font-weight: 600;
+        }
+
+        h4 {
+            color: #444;
+            font-size: 1.2em;
+            margin: 25px 0 12px 0;
+            font-weight: 600;
+        }
+
+        p {
+            margin: 16px 0;
+            color: #4a5568;
+        }
+
+        .architecture-box {
+            background: #f7fafc;
+            padding: 30px;
+            border-radius: 8px;
+            margin: 30px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .diagram-box {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 25px;
+            border-radius: 6px;
+            margin: 25px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.8;
+            white-space: pre;
+        }
+
+        .formula-box {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            font-size: 0.95em;
+            line-height: 1.8;
+            color: #2d3748;
+            white-space: pre-wrap;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+
+        .success-box {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f7fafc;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        .flow-diagram {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .flow-step {
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 10px;
+            font-weight: 600;
+        }
+
+        .flow-arrow {
+            font-size: 2em;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 35px;
+            color: #4a5568;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        strong {
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .comparison-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .comparison-item {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+        }
+
+        @media (max-width: 768px) {
+            .comparison-box {
+                grid-template-columns: 1fr;
+            }
+
+            .content {
+                padding: 30px 25px;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⏱️ Time Series Modeling with 1D CNN</h1>
+            <p>Complete Mathematical Walkthrough for Gait Analysis</p>
+        </header>
+
+        <div class="content">
+            <h2>Problem Setup</h2>
+            <p>We have gait data from <strong>4 subjects</strong>, each with <strong>5 timesteps</strong> and <strong>3 features</strong> per timestep.</p>
+
+            <div class="architecture-box">
+                <h3>Input Shape: (4, 5, 3)</h3>
+                <p>→ (batch_size, timesteps, features)</p>
+            </div>
+
+            <h3>Example Data</h3>
+            <div class="code-block"># 4 subjects, 5 timesteps, 3 features (e.g., velocity, stride_length, acceleration)
+X = [
+    # Subject 1
+    [[0.5, 1.2, 0.3],   # timestep 0
+     [0.6, 1.3, 0.4],   # timestep 1
+     [0.7, 1.1, 0.5],   # timestep 2
+     [0.8, 1.4, 0.3],   # timestep 3
+     [0.9, 1.2, 0.6]],  # timestep 4
+
+    # Subject 2
+    [[0.4, 1.0, 0.2],
+     [0.5, 1.1, 0.3],
+     [0.6, 0.9, 0.4],
+     [0.7, 1.2, 0.2],
+     [0.8, 1.0, 0.5]],
+
+    # Subject 3
+    [[0.3, 0.8, 0.1],
+     [0.4, 0.9, 0.2],
+     [0.5, 0.7, 0.3],
+     [0.6, 1.0, 0.1],
+     [0.7, 0.8, 0.4]],
+
+    # Subject 4
+    [[0.6, 1.5, 0.4],
+     [0.7, 1.6, 0.5],
+     [0.8, 1.4, 0.6],
+     [0.9, 1.7, 0.4],
+     [1.0, 1.5, 0.7]]
+]
+
+# Labels: 1 = ASD, 0 = No ASD
+y = [1, 0, 0, 1]</div>
+
+            <h2>1D CNN Architecture</h2>
+            <div class="flow-diagram">
+                <div class="flow-step">Input (4, 5, 3)</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">Conv1D (kernel=3, filters=8)</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">ReLU Activation</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">MaxPooling1D (pool=2)</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">Flatten</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">Dense Layer (32 neurons)</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">Output (1 neuron, Sigmoid)</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step">Prediction (0 or 1)</div>
+            </div>
+
+            <h2>Step 1: Conv1D Layer</h2>
+
+            <h3>What is 1D Convolution?</h3>
+            <p>A <strong>sliding window</strong> that moves along the <strong>time axis</strong> to detect patterns.</p>
+
+            <div class="info-box">
+                <h4>Parameters:</h4>
+                <ul>
+                    <li><strong>Kernel size:</strong> 3 (window looks at 3 consecutive timesteps)</li>
+                    <li><strong>Filters:</strong> 8 (we'll learn 8 different patterns)</li>
+                    <li><strong>Stride:</strong> 1 (move window by 1 timestep)</li>
+                </ul>
+            </div>
+
+            <h3>Filter Structure</h3>
+            <p>Each filter has shape <span class="highlight">(kernel_size, input_features) = (3, 3)</span></p>
+
+            <div class="formula-box">Example Filter 1:
+
+W₁ = [[0.1, 0.2, -0.1],   # weights for timestep t
+      [0.3, -0.2, 0.4],   # weights for timestep t+1
+      [-0.1, 0.5, 0.2]]   # weights for timestep t+2
+
+b₁ = 0.1  # bias</div>
+
+            <h3>Convolution Operation for Subject 1</h3>
+
+            <div class="formula-box">Input for Subject 1:
+
+[[0.5, 1.2, 0.3],   # t=0
+ [0.6, 1.3, 0.4],   # t=1
+ [0.7, 1.1, 0.5],   # t=2
+ [0.8, 1.4, 0.3],   # t=3
+ [0.9, 1.2, 0.6]]   # t=4</div>
+
+            <h4>Window Position 1 (timesteps 0-2):</h4>
+
+            <div class="diagram-box">
+                <h4>Extract window:</h4>
+                <div class="formula-box">window₁ = [[0.5, 1.2, 0.3],   # t=0
+           [0.6, 1.3, 0.4],   # t=1
+           [0.7, 1.1, 0.5]]   # t=2</div>
+            </div>
+
+            <div class="success-box">
+                <h4>Compute convolution (element-wise multiply + sum):</h4>
+                <div class="formula-box">result₁ = Σ(window₁ ⊙ W₁) + b₁
+
+= (0.5×0.1 + 1.2×0.2 + 0.3×(-0.1)) +    # t=0
+  (0.6×0.3 + 1.3×(-0.2) + 0.4×0.4) +    # t=1
+  (0.7×(-0.1) + 1.1×0.5 + 0.5×0.2) +    # t=2
+  0.1                                    # bias
+
+= (0.05 + 0.24 - 0.03) +     # = 0.26
+  (0.18 - 0.26 + 0.16) +     # = 0.08
+  (-0.07 + 0.55 + 0.10) +    # = 0.58
+  0.1
+
+= 0.26 + 0.08 + 0.58 + 0.1
+= <span class="highlight">1.02</span></div>
+            </div>
+
+            <h4>Window Position 2 (timesteps 1-3):</h4>
+
+            <div class="formula-box">window₂ = [[0.6, 1.3, 0.4],   # t=1
+           [0.7, 1.1, 0.5],   # t=2
+           [0.8, 1.4, 0.3]]   # t=3
+
+result₂ = Σ(window₂ ⊙ W₁) + b₁
+
+= (0.6×0.1 + 1.3×0.2 + 0.4×(-0.1)) +
+  (0.7×0.3 + 1.1×(-0.2) + 0.5×0.4) +
+  (0.8×(-0.1) + 1.4×0.5 + 0.3×0.2) +
+  0.1
+
+= (0.06 + 0.26 - 0.04) +     # = 0.28
+  (0.21 - 0.22 + 0.20) +     # = 0.19
+  (-0.08 + 0.70 + 0.06) +    # = 0.68
+  0.1
+
+= <span class="highlight">1.25</span></div>
+
+            <h4>Window Position 3 (timesteps 2-4):</h4>
+
+            <div class="formula-box">window₃ = [[0.7, 1.1, 0.5],   # t=2
+           [0.8, 1.4, 0.3],   # t=3
+           [0.9, 1.2, 0.6]]   # t=4
+
+result₃ = Σ(window₃ ⊙ W₁) + b₁ = <span class="highlight">1.18</span></div>
+
+            <h3>After Conv1D with Filter 1:</h3>
+
+            <div class="success-box">
+                <p>For <strong>Subject 1</strong>, using <strong>Filter 1</strong>, we get:</p>
+                <div class="formula-box">output_filter1_subject1 = [1.02, 1.25, 1.18]  # Shape: (3,)</div>
+                <p><strong>Note:</strong> We had 5 timesteps, kernel size 3, so output length = 5 - 3 + 1 = <span class="highlight">3</span></p>
+            </div>
+
+            <h3>With All 8 Filters:</h3>
+            <p>We repeat this process with 8 different filters (each learning different patterns).</p>
+
+            <div class="warning-box">
+                <h4>CORRECT Representation - Shape (3, 8):</h4>
+                <div class="code-block"># Subject 1 after Conv1D - CORRECT FORMAT
+# Each row = one output timestep with all 8 filter responses
+conv_output_subject1 = [
+    [1.02, 0.85, 1.15, 0.78, 1.10, 0.92, 1.08, 0.88],   # Output timestep 0
+    [1.25, 0.92, 1.30, 0.95, 1.18, 1.05, 1.22, 0.98],   # Output timestep 1
+    [1.18, 0.88, 1.22, 0.81, 1.25, 0.98, 1.15, 0.92]    # Output timestep 2
+]
+# Shape: (3, 8)  → (timesteps_out, filters)
+#        ↑  ↑
+#        │  └─ 8 filters
+#        └─ 3 output timesteps</div>
+
+                <p><strong>Explanation:</strong></p>
+                <ul>
+                    <li><strong>Row 0:</strong> Output at position 0 (from window covering timesteps 0-2), showing responses from all 8 filters</li>
+                    <li><strong>Row 1:</strong> Output at position 1 (from window covering timesteps 1-3), showing responses from all 8 filters</li>
+                    <li><strong>Row 2:</strong> Output at position 2 (from window covering timesteps 2-4), showing responses from all 8 filters</li>
+                </ul>
+            </div>
+
+            <div class="architecture-box">
+                <p><strong>After processing all 4 subjects:</strong></p>
+                <div class="formula-box">Conv1D output shape: (4, 3, 8)  → (batch, timesteps_out, filters)</div>
+            </div>
+
+            <h2>Step 2: ReLU Activation</h2>
+            <p>Apply <span class="highlight">ReLU(x) = max(0, x)</span> element-wise:</p>
+
+            <div class="code-block"># Subject 1 (all values already positive, so unchanged)
+relu_output_subject1 = [
+    [1.02, 0.85, 1.15, 0.78, 1.10, 0.92, 1.08, 0.88],   # Timestep 0
+    [1.25, 0.92, 1.30, 0.95, 1.18, 1.05, 1.22, 0.98],   # Timestep 1
+    [1.18, 0.88, 1.22, 0.81, 1.25, 0.98, 1.15, 0.92]    # Timestep 2
+]
+# Shape: (3, 8)</div>
+
+            <h2>Step 3: MaxPooling1D</h2>
+
+            <div class="info-box">
+                <h4>Pool size: 2</h4>
+                <p>Take max over every 2 consecutive timesteps</p>
+            </div>
+
+            <h3>How It Works:</h3>
+            <p>We pool <strong>along the timestep axis</strong> (axis 0). For each filter, divide timesteps into groups of 2 and take the maximum.</p>
+
+            <div class="diagram-box">
+                <h4>For Filter 1 (first column):</h4>
+                <div class="formula-box">Input:  [1.02, 1.25, 1.18]  (3 timesteps)
+           ↓
+Group 1: [1.02, 1.25] → max = 1.25
+Group 2: [1.18]       → max = 1.18  (leftover single value)
+           ↓
+Output: [1.25, 1.18]</div>
+            </div>
+
+            <div class="diagram-box">
+                <h4>For Filter 2 (second column):</h4>
+                <div class="formula-box">Input:  [0.85, 0.92, 0.88]
+           ↓
+Group 1: [0.85, 0.92] → max = 0.92
+Group 2: [0.88]       → max = 0.88
+           ↓
+Output: [0.92, 0.88]</div>
+            </div>
+
+            <h3>After MaxPooling:</h3>
+
+            <div class="code-block"># Subject 1 - CORRECT FORMAT
+# Each row = one pooled timestep with all 8 filter responses
+pooled_subject1 = [
+    [1.25, 0.92, 1.30, 0.95, 1.18, 1.05, 1.22, 0.98],   # Pooled timestep 0
+    [1.18, 0.88, 1.22, 0.81, 1.25, 0.98, 1.15, 0.92]    # Pooled timestep 1
+]
+# Shape: (2, 8)  → (timesteps_pooled, filters)
+#        ↑  ↑
+#        │  └─ 8 filters
+#        └─ 2 pooled timesteps</div>
+
+            <div class="architecture-box">
+                <p><strong>After processing all 4 subjects:</strong></p>
+                <div class="formula-box">MaxPool output shape: (4, 2, 8)  → (batch, timesteps_pooled, filters)</div>
+                <p><strong>Intuition:</strong> Pooling reduces dimensionality while keeping the strongest activations (most important patterns detected).</p>
+            </div>
+
+            <h2>Step 4: Flatten</h2>
+            <p>Convert 3D tensor to 2D for dense layers:</p>
+
+            <div class="code-block"># Subject 1
+# Flatten by concatenating all timesteps and filters
+flattened_subject1 = [
+    1.25, 0.92, 1.30, 0.95, 1.18, 1.05, 1.22, 0.98,  # Timestep 0
+    1.18, 0.88, 1.22, 0.81, 1.25, 0.98, 1.15, 0.92   # Timestep 1
+]
+# Shape: (16,)  → (2 timesteps × 8 filters = 16 features)</div>
+
+            <div class="architecture-box">
+                <div class="formula-box">Flatten output shape: (4, 16)  → (batch, features)</div>
+            </div>
+
+            <h2>Step 5: Dense Layer (32 neurons)</h2>
+
+            <div class="info-box">
+                <p><strong>Weight matrix:</strong> W_dense = (16, 32)</p>
+                <p><strong>Bias vector:</strong> b_dense = (32,)</p>
+            </div>
+
+            <h3>Calculation for Subject 1:</h3>
+
+            <div class="formula-box">Z_dense = flattened_subject1 · W_dense + b_dense
+
+# Example calculation for first neuron:
+Z_dense[0] = Σ(flattened_subject1[i] × W_dense[i,0]) + b_dense[0]
+           = 1.25×0.15 + 0.92×0.22 + ... + 0.92×(-0.18) + 0.05
+           = 0.85
+
+# For all 32 neurons:
+Z_dense = [0.85, 0.92, 0.73, ..., 0.68]  # Shape: (32,)</div>
+
+            <div class="formula-box">Apply ReLU:
+
+A_dense = ReLU(Z_dense) = [0.85, 0.92, 0.73, ..., 0.68]  # Shape: (32,)</div>
+
+            <div class="architecture-box">
+                <div class="formula-box">Dense output shape: (4, 32)  → (batch, hidden_features)</div>
+            </div>
+
+            <h2>Step 6: Output Layer (Sigmoid)</h2>
+
+            <div class="info-box">
+                <p><strong>Weight matrix:</strong> W_out = (32, 1)</p>
+                <p><strong>Bias:</strong> b_out = 0.0</p>
+            </div>
+
+            <h3>For Subject 1:</h3>
+
+            <div class="success-box">
+                <div class="formula-box">Z_out = A_dense · W_out + b_out
+      = Σ(A_dense[i] × W_out[i]) + b_out
+      = 0.85×0.12 + 0.92×0.15 + ... + 0.68×0.10 + 0.0
+      = 0.65
+
+ŷ = sigmoid(Z_out) = 1 / (1 + e^(-0.65))
+                   = 1 / (1 + 0.522)
+                   = <span class="highlight">0.657</span></div>
+
+                <p><strong>Interpretation:</strong> Subject 1 has <span class="highlight">65.7%</span> probability of ASD</p>
+            </div>
+
+            <h3>Final Predictions:</h3>
+
+            <div class="code-block">predictions = [
+    0.657,  # Subject 1 (actual label: 1 - ASD)
+    0.412,  # Subject 2 (actual label: 0 - No ASD)
+    0.385,  # Subject 3 (actual label: 0 - No ASD)
+    0.723   # Subject 4 (actual label: 1 - ASD)
+]
+
+# Apply threshold (0.5):
+binary_predictions = [1, 0, 0, 1]  # Perfect match!</div>
+
+            <h2>What Makes This "Time Series"?</h2>
+
+            <div class="comparison-box">
+                <div class="comparison-item">
+                    <h4>Static Model (Your Current)</h4>
+                    <div class="formula-box">[t₀: 0.5,1.2,0.3, t₁: 0.6,1.3,0.4, ..., t₄: 0.9,1.2,0.6]
+       ↓
+   (all treated as independent features)
+       ↓
+    [flatten]
+       ↓
+[0.5, 1.2, 0.3, 0.6, 1.3, 0.4, ..., 0.9, 1.2, 0.6]</div>
+                </div>
+
+                <div class="comparison-item">
+                    <h4>Time Series Model (1D CNN)</h4>
+                    <div class="formula-box">Looks at PATTERNS across time:
+
+Window 1: [t₀, t₁, t₂] → detects "increasing velocity"
+Window 2: [t₁, t₂, t₃] → detects "stable stride"
+Window 3: [t₂, t₃, t₄] → detects "irregular acceleration"</div>
+                </div>
+            </div>
+
+            <h3>What the CNN Learns:</h3>
+            <p>Each filter learns different <strong>temporal patterns</strong>:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Filter</th>
+                        <th>Pattern Detected</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Filter 1</strong></td>
+                        <td>Detects sudden acceleration changes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Filter 2</strong></td>
+                        <td>Identifies rhythmic stride patterns</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Filter 3</strong></td>
+                        <td>Recognizes irregular gait (common in ASD)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Filter 4</strong></td>
+                        <td>Captures velocity trends</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Filters 5-8</strong></td>
+                        <td>Other diagnostic patterns</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="warning-box">
+                <h4>Example Pattern Detection:</h4>
+                <div class="formula-box">Filter detecting "irregular acceleration":
+
+If timesteps show: [smooth, smooth, SPIKE] → High activation
+If timesteps show: [smooth, smooth, smooth] → Low activation</div>
+            </div>
+
+            <h2>Summary: Information Flow</h2>
+
+            <div class="flow-diagram">
+                <div class="formula-box" style="text-align: left;">Input (4, 5, 3)
+    ↓
+[Conv1D: Scan 3-timestep windows, detect 8 patterns]
+    ↓
+(4, 3, 8) ← 3 windows per subject, 8 pattern types
+    ↓
+[ReLU: Keep only positive activations]
+    ↓
+(4, 3, 8)
+    ↓
+[MaxPool: Keep strongest activations in 2-timestep groups]
+    ↓
+(4, 2, 8) ← Reduced to 2 time positions
+    ↓
+[Flatten: Convert to feature vector]
+    ↓
+(4, 16) ← 16 features per subject
+    ↓
+[Dense Layer: Combine pattern features]
+    ↓
+(4, 32)
+    ↓
+[Output Layer: Make final decision]
+    ↓
+(4, 1) ← ASD probability for each subject</div>
+            </div>
+
+            <h2>Key Advantages of 1D CNN for Time Series</h2>
+
+            <div class="info-box">
+                <ol>
+                    <li><strong>Local Pattern Detection:</strong> Learns patterns in small time windows</li>
+                    <li

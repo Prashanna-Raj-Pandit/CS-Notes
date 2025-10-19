@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Time Series Segmentation & Embedding — Notes</title>
+  <style>
+    :root{
+      --bg:#f7fafc; --card:#ffffff; --muted:#6b7280; --accent:#6b8cff; --accent-2:#8ec5a0;
+      --text:#0f172a; --mono:#0b1220;
+      --maxw:900px;
+      --sidebar:#eef2ff;
+    }
+    html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg); color:var(--text);}
+    .container{display:flex;gap:24px;max-width:1200px;margin:32px auto;padding:24px;}
+    .sidebar{width:260px;background:var(--sidebar);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(11,18,32,0.06);}
+    .main{flex:1;background:linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));padding:28px;border-radius:12px;box-shadow:0 8px 24px rgba(11,18,32,0.06);max-width:var(--maxw);}
+    h1{margin:0 0 8px 0;font-size:26px}
+    h2{margin-top:18px;color:var(--accent)}
+    p{line-height:1.55;color:#263043}
+    .muted{color:var(--muted);font-size:14px}
+    nav ul{list-style:none;padding:0;margin:8px 0 0 0}
+    nav li{margin:10px 0}
+    nav a{color:var(--text);text-decoration:none}
+    .card{background:var(--card);border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 4px 12px rgba(11,18,32,0.04)}
+    code{background:#0b122010;padding:2px 6px;border-radius:6px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;font-size:13px}
+    pre{background:#0b122022;padding:12px;border-radius:8px;overflow:auto}
+    .diagram{display:flex;justify-content:center;margin:12px 0}
+    /* pipeline SVG style */
+    .pipeline-surface{max-width:850px}
+    .section-list{counter-reset:sec;}
+    .section-item{margin:10px 0;padding-left:8px}
+    .section-item:before{counter-increment:sec;content:counter(sec) ". ";font-weight:700;color:var(--accent)}
+    .note{background:#fff8dc;border-left:4px solid var(--accent-2);padding:10px;border-radius:6px}
+    /* Collapsible */
+    .collapsible{cursor:pointer;padding:10px;border-radius:8px;border:1px solid #e6eefc;background:#fbfdff}
+    .content-hidden{display:none;padding:12px 6px}
+    /* print/page breaks to ensure 10+ pages when printed */
+    @media print{
+      .container{max-width:100%;}
+      .sidebar{display:none}
+      .main{box-shadow:none;border-radius:0;padding:12px}
+      .page-break{page-break-after:always}
+    }
+    .footer{font-size:13px;color:var(--muted);margin-top:18px}
+    /* small visual table */
+    table{border-collapse:collapse;width:100%;}
+    th,td{padding:8px;border-bottom:1px solid #eef2ff;text-align:left}
+    th{background:#fbfdff}
+    .kbd{background:#0b122020;padding:2px 6px;border-radius:6px;font-family:ui-monospace}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <h3>Notes: Time Series Segmentation & Embedding</h3>
+      <p class="muted">Humanized notes + pipeline diagram. Based on: Irani et al., <em>Expert Systems</em> (2025).</p>
+      <nav>
+        <ul>
+          <li><a href="#intro">Intro</a></li>
+          <li><a href="#segmentation">Segmentation</a></li>
+          <li><a href="#labels">Labels & Aggregation</a></li>
+          <li><a href="#normalization">Normalization</a></li>
+          <li><a href="#embeddings">Embeddings</a></li>
+          <li><a href="#classifiers">Classifiers & Training</a></li>
+          <li><a href="#math">Mathematics</a></li>
+          <li><a href="#example">Worked Example</a></li>
+          <li><a href="#practical">Practical tips</a></li>
+          <li><a href="#references">References</a></li>
+        </ul>
+      </nav>
+      <div style="margin-top:18px;font-size:13px;color:var(--muted)">
+        <div><strong>Author:</strong> Notes generated for Prashanna</div>
+        <div style="margin-top:8px">Format: single-file HTML + CSS. Printable (use browser print).</div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+      <header class="card">
+        <h1 id="intro">Time Series Segmentation & Embedding — Notes</h1>
+        <p class="muted">Clear, step-by-step notes that combine concepts, math, examples, and a pipeline diagram. Designed to be read on screen or printed. Reference: Irani et al., "Time Series Embedding Methods for Classification Tasks: A Review" (<em>Expert Systems</em>, 2025).</p>
+      </header>
+
+      <section class="card">
+        <h2>1. What this document covers</h2>
+        <ul class="section-list">
+          <li class="section-item">Definitions and intuition: segmentation, embedding, aggregation</li>
+          <li class="section-item">The end-to-end pipeline: math + flow</li>
+          <li class="section-item">Worked numeric example</li>
+          <li class="section-item">Common embedding methods and their interpretations</li>
+          <li class="section-item">Tips: hyperparameters, pitfalls, evaluation</li>
+        </ul>
+      </section>
+
+      <section class="card page-break">
+        <h2 id="segmentation">2. Time Series Segmentation — Intuition</h2>
+        <p>Segmentation is the process of splitting a long time series into multiple fixed-length windows (segments) that serve as individual training samples. Each segment is processed independently by the embedding function and the classifier. Segmentation helps the model learn local temporal structure rather than trying to model very long sequences directly.</p>
+
+        <h3>Key hyperparameters</h3>
+        <ul>
+          <li><strong>Window size (τ)</strong>: number of time steps in each segment.</li>
+          <li><strong>Overlap (ω)</strong>: how many time steps the next window shares with the previous window.</li>
+          <li><strong>Stride</strong>: τ − ω, the number of new samples introduced by each new segment.</li>
+        </ul>
+
+        <h3>Why we segment</h3>
+        <ul>
+          <li>Transforms variable-length series into many fixed-size examples.</li>
+          <li>Boosts training set size by creating multiple overlapping views.</li>
+          <li>Allows local patterns to be learned more efficiently (e.g., a heartbeat morphology in a fixed window).</li>
+        </ul>
+
+        <h3>Visual idea (conceptual)</h3>
+        <div class="diagram pipeline-surface">
+          <!-- Inline SVG pipeline diagram -->
+          <svg width="820" height="160" viewBox="0 0 820 160" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.12"/></filter>
+            </defs>
+            <!-- raw series -->
+            <rect x="6" y="16" rx="10" ry="10" width="150" height="44" fill="#ffffff" stroke="#e6eefc" filter="url(#shadow)"/>
+            <text x="22" y="44" font-family="Inter" font-size="13" fill="#263043">Raw time series (X)</text>
+            <!-- segmentation -->
+            <rect x="176" y="8" rx="10" ry="10" width="150" height="64" fill="#ffffff" stroke="#e6eefc" filter="url(#shadow)"/>
+            <text x="190" y="36" font-family="Inter" font-size="13" fill="#263043">Segmentation</text>
+            <text x="190" y="53" font-family="Inter" font-size="12" fill="#6b7280">windows: τ, overlap: ω</text>
+            <!-- normalization -->
+            <rect x="346" y="28" rx="10" ry="10" width="140" height="36" fill="#ffffff" stroke="#e6eefc" filter="url(#shadow)"/>
+            <text x="360" y="50" font-family="Inter" font-size="13" fill="#263043">Normalization</text>
+            <!-- embedding -->
+            <rect x="522" y="8" rx="10" ry="10" width="180" height="64" fill="#ffffff" stroke="#e6eefc" filter="url(#shadow)"/>
+            <text x="548" y="28" font-family="Inter" font-size="13" fill="#263043">Embedding g(·)</text>
+            <text x="548" y="46" font-family="Inter" font-size="12" fill="#6b7280">→ v ∈ ℝᵈ (fixed-size vector)</text>
+            <!-- classifier -->
+            <rect x="720" y="28" rx="10" ry="10" width="84" height="36" fill="#ffffff" stroke="#e6eefc" filter="url(#shadow)"/>
+            <text x="734" y="50" font-family="Inter" font-size="13" fill="#263043">Classifier</text>
+            <!-- arrows -->
+            <path d="M156 38 L176 38" stroke="#c7d4ff" stroke-width="3" marker-end="url(#arrow)"/>
+            <path d="M326 40 L346 40" stroke="#c7d4ff" stroke-width="3"/>
+            <path d="M486 40 L522 40" stroke="#c7d4ff" stroke-width="3"/>
+            <path d="M702 46 L720 46" stroke="#c7d4ff" stroke-width="3"/>
+            <!-- tiny windows representation -->
+            <g>
+              <rect x="188" y="84" width="58" height="12" rx="2" fill="#f0f6ff"/>
+              <rect x="204" y="78" width="58" height="12" rx="2" fill="#eef7ee"/>
+              <rect x="220" y="72" width="58" height="12" rx="2" fill="#fff6ee"/>
+            </g>
+            <!-- arrowhead marker -->
+            <defs>
+              <marker id="arrow" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L6,3 z" fill="#93a8ff" />
+              </marker>
+            </defs>
+          </svg>
+        </div>
+
+        <div class="note">
+          <strong>Quick note:</strong> Segmentation is the point where the series changes from a time-ordered signal into a set of independent samples that models can learn from.
+        </div>
+
+      </section>
+
+      <section class="card">
+        <h2 id="labels">3. Segment Labels: Where they come from and why aggregation?</h2>
+        <p>When the original dataset has a label at each timestep (e.g., activity at every second), a single segment contains many such labels. To produce a single target value for the whole segment we use an <strong>aggregation function</strong>.</p>
+
+        <h3>Common aggregation choices</h3>
+        <ul>
+          <li><strong>Mode</strong> (most common label) — used for categorical labels (the paper uses this).</li>
+          <li><strong>Majority threshold</strong> — choose a class only if it appears in more than a threshold fraction (e.g., &gt;50%).</li>
+          <li><strong>Proportional labels</strong> — for multi-label problems, store label distribution inside the window.</li>
+        </ul>
+
+        <h3>Why mode is sensible</h3>
+        <ul>
+          <li>Simple, robust for categorical labels.</li>
+          <li>Avoids averaging non-sense for categorical values.</li>
+          <li>Represents the "dominant" state in the time window.</li>
+        </ul>
+
+        <h3>Where aggregated labels are used</h3>
+        <p>The aggregated label y<sub>i,j</sub> is the <em>target</em> used during classification training. For each segment:</p>
+        <pre><code>segment: s_{i,j}  ->  embedding: v_{i,j}  ->  classifier input
+label:   y_{i,j}  ->  used as the target to compute the loss during training</code></pre>
+
+      </section>
+
+      <section class="card page-break">
+        <h2 id="normalization">4. Normalization & Preprocessing</h2>
+        <p>Normalization ensures that channels and segments are comparable. Two common approaches:</p>
+        <ul>
+          <li><strong>Standardization</strong>: subtract channel mean and divide by channel standard deviation (computed on the training set)</li>
+          <li><strong>Min-max scaling</strong>: rescale to [0,1] using training min and max</li>
+        </ul>
+
+        <p>Notation — for a channel c in the training set:</p>
+        <pre><code>standard:  s_tilde[t,c] = (s[t,c] - mu_c) / sigma_c
+min-max:    s_tilde[t,c] = (s[t,c] - min_c) / (max_c - min_c)</code></pre>
+
+        <p class="muted">Always compute statistics only on <strong>training</strong> segments and apply the same transformation to validation/test segments.</p>
+      </section>
+
+      <section class="card">
+        <h2 id="embeddings">5. What is an Embedding?</h2>
+        <p>An embedding is a fixed-length vector that summarizes a segment. Formally, for a segment s (shape τ × C):</p>
+        <pre><code>v = g(s)   where   v ∈ ℝᵈ</code></pre>
+        <p>Here ℝᵈ simply means a vector with d real numbers (e.g., d=64). The embedding function g(·) can be:</p>
+        <ul>
+          <li><strong>Hand-crafted</strong>: mean, std, spectral power, peak counts</li>
+          <li><strong>Transformation-based</strong>: DFT/FFT, wavelet coefficients</li>
+          <li><strong>Statistical</strong>: PCA projection</li>
+          <li><strong>Model-based / Learned</strong>: autoencoders, CNN/RNN/Transformer encoders</li>
+          <li><strong>Topological/Graph</strong>: features from visibility graphs or persistence diagrams</li>
+        </ul>
+
+        <h3>Why embeddings help</h3>
+        <ul>
+          <li>Convert variable-length or long inputs into a compact, fixed-size form.</li>
+          <li>Make it easy to use classical classifiers (SVM, Random Forest, Logistic Regression).</li>
+          <li>Enable similarity search and visualization in embedding space.</li>
+        </ul>
+
+        <h3>Examples of simple g(·)</h3>
+        <pre><code>g_meanvar(s) = [ mean(s), var(s) ]  // a 2-d embedding
+g_fft(s) = [ |FFT_k| for k in selected frequencies ]
+encoderNN(s) = last_hidden_state_from_cnn_or_transformer  // learned d-dim vector</code></pre>
+      </section>
+
+      <section class="card page-break">
+        <h2 id="classifiers">6. Classifiers & Training</h2>
+        <p>Once you have embeddings v<sub>i,j</sub> and labels y<sub>i,j</sub>, you train a classifier f<sub>θ</sub> to map embeddings → labels:</p>
+        <pre><code>ŷ = f_θ(v)   where  ŷ is the predicted label (or probability)</code></pre>
+
+        <h3>Common classifier choices</h3>
+        <ul>
+          <li>Logistic Regression / Linear models</li>
+          <li>Random Forest / XGBoost</li>
+          <li>KNN / SVM</li>
+          <li>MLP (dense neural network)</li>
+        </ul>
+
+        <h3>Loss & optimization (high level)</h3>
+        <ul>
+          <li>For binary classification: binary cross-entropy</li>
+          <li>For multi-class: categorical cross-entropy (softmax)
+          <li>Optimization via gradient descent (SGD, Adam) for neural nets; tree ensembles use different fitting algorithms</li>
+        </ul>
+
+        <h3>Where segment labels are used</h3>
+        <p>The aggregated segment label y<sub>i,j</sub> is directly used in the loss computation during training. The model updates its parameters θ to reduce the discrepancy between ŷ and y.</p>
+      </section>
+
+      <section class="card">
+        <h2 id="math">7. Formal pipeline — mathematics</h2>
+    <div class="math-block">
+Dataset:  𝓓 = { (Xᵢ, Yᵢ) }ᵢ₌₁ᴺ, where  Xᵢ ∈ ℝ^{Tᵢ×C},  Yᵢ ∈ 𝓛^{Tᵢ}
+
+
+Segmentation:  for each series Xᵢ, create windows
+    sᵢⱼ = Xᵢ[tⱼ : tⱼ + τ]
+    where  tⱼ = 1, (τ−ω)+1, 2(τ−ω)+1, …, Tᵢ − τ + 1
+
+Label aggregation:  yᵢⱼ = mode( Yᵢ[tⱼ : tⱼ + τ] )   ⟶ categorical labels
+
+Normalization:  s̃ᵢⱼ = f( sᵢⱼ ),   where f is standardization or min–max scaling using training statistics
+
+Embedding:  vᵢⱼ = g( s̃ᵢⱼ ) ∈ ℝᵈ
+
+Classifier:  learn f_θ with parameters θ such that  ŷᵢⱼ = f_θ(vᵢⱼ)
+
+Training objective:  minimize  𝓛(θ) = Σᵢⱼ ℓ( yᵢⱼ , ŷᵢⱼ )
+      </div>
+      </section>
+
+      <section class="card page-break">
+        <h2 id="example">8. Worked numerical example (step-by-step)</h2>
+        <p>We use a small example to see the pipeline in numbers. Let:</p>
+        <pre><code>X = [2,3,5,6,7,6,5,4,3,2]
+Y = [0,0,0,0,1,1,1,1,0,0]
+τ = 5, ω = 2 (so stride = 3)</code></pre>
+
+        <h3>Segments</h3>
+        <ol>
+          <li>s1 = [2,3,5,6,7], labels [0,0,0,0,1]  → mode = 0</li>
+          <li>s2 = [6,7,6,5,4], labels [0,0,0,1,1]  → mode = 0</li>
+          <li>s3 = [5,4,3,2,?] — (trim or pad) → aggregate labels accordingly</li>
+        </ol>
+
+        <h3>Embedding (simple mean-std)</h3>
+        <pre><code>g(s) = [ mean(s), std(s) ]
+For s1: mean=4.6, std≈1.85  → v1=[4.6,1.85]
+For s2: mean=5.6, std≈1.02  → v2=[5.6,1.02]
+</code></pre>
+
+        <h3>Train a simple classifier</h3>
+        <pre><code>Using logistic regression: ŷ = σ(w·v + b)
+Use segments (v1,y1), (v2,y2), ... to fit weights w and bias b via gradient descent.
+</code></pre>
+
+        <p class="muted">Note: In real datasets you will have many more overlapping segments and a richer embedding (d&gt;2).</p>
+      </section>
+
+      <section class="card">
+        <h2 id="practical">9. Practical tips and common pitfalls</h2>
+        <h3>Hyperparameters</h3>
+        <ul>
+          <li><strong>τ (window size)</strong>: pick based on the temporal scale of the phenomenon (e.g., one gait cycle, one sleep epoch).</li>
+          <li><strong>ω (overlap)</strong>: higher overlap increases data size and context but also correlation between samples — be mindful of train/val splits.</li>
+          <li><strong>Embedding dimension d</strong>: tuned per method; too small loses information, too large invites overfitting.</li>
+        </ul>
+
+        <h3>Data leakage risks</h3>
+        <ul>
+          <li>Ensure splits are made at the entity level (subject, device, date) so that windows from the same entity do not appear in both train and test.</li>
+          <li>When computing normalization stats, compute them only on training data.</li>
+        </ul>
+
+        <h3>Label noise & mixed windows</h3>
+        <ul>
+          <li>Short windows reduce the chance of mixed labels; long windows increase label ambiguity.</li>
+          <li>Consider rejecting windows that do not have a clear majority label or using soft targets that reflect label distribution.</li>
+        </ul>
+
+        <h3>Evaluation</h3>
+        <ul>
+          <li>Report per-segment metrics and, where relevant, aggregated sequence metrics (e.g., majority vote across windows to predict a full sequence).</li>
+          <li>Use balanced metrics (F1, balanced accuracy) when classes are imbalanced.</li>
+        </ul>
+      </section>
+
+      <section class="card page-break">
+        <h2 id="references">10. References</h2>
+        <p>Main reference used to build these notes:</p>
+        <ul>
+          <li>Irani, H., Ghahremani, Y., Kermani, A., &amp; Metsis, V. (2025). <em>Time Series Embedding Methods for Classification Tasks: A Review</em>. <strong>Expert Systems</strong>. DOI: 10.1111/exsy.70148.</li>
+        </ul>
+
+        <p class="muted">Further reading (selected): PCA, FFT/Wavelets textbooks, TSFRESH/catch22 docs, and contrastive learning literature (e.g., NNCLR).</p>
+      </section>
+
+      <footer class="footer card">
+        <div>Prepared for: <strong>Prashanna</strong></div>
+        <div style="margin-top:6px">If you want this exported as a downloadable single-file HTML, use your browser's "Save as..." or let me know and I can prepare a downloadable link.</div>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // Simple collapsible behavior (if needed for future edits)
+    document.querySelectorAll('.collapsible').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.nextElementSibling; if (!target) return;
+        target.style.display = target.style.display === 'block' ? 'none' : 'block';
+      })
+    })
+  </script>
+</body>
+</html>
