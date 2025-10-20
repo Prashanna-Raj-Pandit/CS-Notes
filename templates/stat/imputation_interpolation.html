@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Interpolation vs Iterative Imputer — Explanation</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#60a5fa;
+      --muted:#9ca3af;
+      --text:#e6eef8;
+      --glass: rgba(255,255,255,0.03);
+      --mono: "SFMono-Regular", Monaco, "Roboto Mono", "Courier New", monospace;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(180deg,#06101a 0%, #071528 100%);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:32px;
+      box-sizing:border-box;
+    }
+
+    .container{
+      max-width:980px;
+      margin:0 auto;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px;
+      padding:28px;
+      box-shadow: 0 6px 30px rgba(2,6,23,0.6);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    h1{font-size:24px; margin:0 0 12px; color:var(--accent)}
+    p.lead{color:var(--muted); margin-top:4px;}
+    hr{border:0;height:1px;background:rgba(255,255,255,0.03); margin:20px 0}
+
+    h2{font-size:18px; color:var(--text); margin:18px 0 8px;}
+    h3{font-size:15px; color:var(--text); margin:12px 0;}
+
+    .card{
+      background:var(--glass);
+      padding:14px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.02);
+      margin:10px 0;
+    }
+
+    pre, code{
+      font-family: var(--mono);
+      font-size:13px;
+      color:#dbeafe;
+      background: rgba(255,255,255,0.02);
+      padding:8px;
+      border-radius:8px;
+      overflow:auto;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin:8px 0 12px;
+      font-size:14px;
+    }
+    th, td{
+      padding:8px 10px;
+      border-bottom:1px dashed rgba(255,255,255,0.03);
+      text-align:left;
+    }
+    th{color:var(--accent); font-weight:600}
+    .muted{color:var(--muted); font-size:13px;}
+
+    ul{margin:8px 0 8px 20px}
+    .note{font-size:13px;color:var(--muted);margin-top:8px}
+    .footer{margin-top:24px;color:var(--muted);font-size:13px}
+    .example-box{background:rgba(96,165,250,0.06); padding:10px;border-radius:8px;border:1px solid rgba(96,165,250,0.09)}
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <h1>Interpolation vs Iterative Imputer</h1>
+    <p class="lead">Both techniques fill missing values — but their logic and use-cases are different. This page explains the difference with clear examples and a short summary table.</p>
+
+    <hr />
+
+    <h2> 1. Interpolation — “Smooth guessing between neighbors”</h2>
+    <div class="card">
+      <p><strong>Concept:</strong><br>
+         Interpolation uses <strong>only nearby values of the same feature (column)</strong> to estimate missing values. It assumes the data changes smoothly over time or sequence.</p>
+
+      <h3>Example</h3>
+      <div class="example-box">
+        <p class="muted">Suppose you have knee angle measurements (one feature over frames):</p>
+        <pre>
+Frame:     1     2     3     4
+Knee_Y:   10   NaN    30    40
+        </pre>
+
+        <p class="muted"><strong>Linear interpolation</strong> fills frame 2 as:</p>
+        <pre>
+Frame 2 = 10 + ((30 - 10) / (3 - 1)) * (2 - 1) = 20
+Result: [10, 20, 30, 40]
+        </pre>
+      </div>
+
+      <h3>Key traits</h3>
+      <ul>
+        <li>Works <strong>feature-wise</strong> (independent for each column).</li>
+        <li>Uses temporal or spatial continuity (smooth changes).</li>
+        <li>Assumes smooth progression between values.</li>
+        <li>Simple, fast, and intuitive.</li>
+      </ul>
+    </div>
+
+    <h2> 2. Iterative Imputer — “Model-based prediction using all features”</h2>
+    <div class="card">
+      <p><strong>Concept:</strong><br>
+         Iterative imputation builds a model (e.g. linear regression) for each column that has missing values, predicting it from <strong>the other columns</strong>. It repeats this process iteratively to refine predictions.</p>
+
+      <h3>Example</h3>
+      <p class="muted">Suppose you have three features per frame:</p>
+      <table>
+        <thead><tr><th>Frame</th><th>Hip_X</th><th>Knee_X</th><th>Ankle_X</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>100</td><td>80</td><td>50</td></tr>
+          <tr><td>2</td><td>110</td><td>NaN</td><td>60</td></tr>
+          <tr><td>3</td><td>120</td><td>90</td><td>70</td></tr>
+        </tbody>
+      </table>
+
+      <p class="muted">To impute <code>Knee_X</code> at Frame 2:</p>
+      <pre>
+- Use Hip_X and Ankle_X as predictors.
+- Fit model: Knee_X ≈ a * Hip_X + b * Ankle_X + c
+- Predict missing Knee_X = a*110 + b*60 + c
+      </pre>
+
+      <p class="muted">IterativeImputer repeats that across columns: if other columns also had missing values, they get modeled and filled in rounds until convergence.</p>
+
+      <h3>Key traits</h3>
+      <ul>
+        <li>Uses <strong>all other columns/features</strong> to predict a missing column.</li>
+        <li>Assumes a statistical relationship among features.</li>
+        <li>Uses ML models (LinearRegression, BayesianRidge, etc.).</li>
+        <li>Better for multivariate data where features correlate.</li>
+      </ul>
+    </div>
+
+    <h2>️ Quick Comparison</h2>
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Feature</th><th>Interpolation</th><th>Iterative Imputer</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Data used</strong></td><td>Only same-column neighbors</td><td>All other columns/features</td></tr>
+          <tr><td><strong>Assumption</strong></td><td>Smooth temporal/spatial change</td><td>Statistical relationships across features</td></tr>
+          <tr><td><strong>Model</strong></td><td>None (math between neighbors)</td><td>Regression or other estimators</td></tr>
+          <tr><td><strong>Good for</strong></td><td>Time-series single-feature gaps</td><td>Multivariate sensor or keypoint data</td></tr>
+          <tr><td><strong>Complexity</strong></td><td>Low</td><td>Higher</td></tr>
+          <tr><td><strong>Speed</strong></td><td>Very fast</td><td>Slower</td></tr>
+          <tr><td><strong>Example method</strong></td><td><code>df.interpolate()</code></td><td><code>IterativeImputer(estimator=LinearRegression())</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2> Why your code uses <code>IterativeImputer</code></h2>
+    <div class="card">
+      <p class="muted">
+        Your gait dataset is <strong>multivariate</strong> — each frame contains many coordinates (≈50 columns) that are correlated.
+      </p>
+      <ul>
+        <li>If a knee coordinate is missing, hip and ankle coordinates in the same frame can predict it reliably.</li>
+        <li>Iterative imputation models these cross-feature relationships, giving physically consistent estimates versus naive time-only interpolation.</li>
+      </ul>
+    </div>
+
+    <h2>Would you like a visual demo?</h2>
+    <div class="card">
+      <p class="muted">I can generate an example plot comparing interpolation and iterative imputer results on a small simulated dataset (Python + Matplotlib). Want that as a downloadable image or as code you can run locally?</p>
+    </div>
+
+    <div class="footer">
+      <p>Created for: gait keypoint preprocessing — explanation and examples. If you want this converted to a README.md or to include runnable demos, tell me which format you prefer.</p>
+    </div>
+  </div>
+</body>
+</html>

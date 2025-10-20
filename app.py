@@ -10,8 +10,8 @@ TOPICS = {
         'icon': '📊',
         'color': '#667eea',
         'subtopics': [
-            {'id': 'descriptive-stats', 'title': 'Descriptive Statistics',
-             'description': 'Mean, median, mode, variance'},
+            {'id': 'interpolation', 'title': 'Interpolation and Imputation',
+             'description': 'Understanding of filling missing values.'},
             {'id': 'probability', 'title': 'Probability Theory',
              'description': 'Basics of probability and distributions'},
             {'id': 'hypothesis-testing', 'title': 'Hypothesis Testing', 'description': 't-test, chi-square, ANOVA'},
@@ -56,18 +56,13 @@ TOPICS = {
              'description': 'Pre-trained models and fine-tuning'},
         ]
     },
-    'dsa': {
-        'name': 'Data Structures & Algorithms',
+    'dpp': {
+        'name': 'Data Preprocessing',
         'icon': '🔢',
         'color': '#43e97b',
         'subtopics': [
-            {'id': 'arrays-strings', 'title': 'Arrays & Strings', 'description': 'Basic data structures'},
-            {'id': 'linked-lists', 'title': 'Linked Lists', 'description': 'Single, double, circular'},
-            {'id': 'stacks-queues', 'title': 'Stacks & Queues', 'description': 'LIFO and FIFO structures'},
-            {'id': 'trees', 'title': 'Trees', 'description': 'Binary trees, BST, AVL'},
-            {'id': 'graphs', 'title': 'Graphs', 'description': 'BFS, DFS, shortest path'},
-            {'id': 'sorting', 'title': 'Sorting Algorithms', 'description': 'Quick, merge, heap sort'},
-            {'id': 'dynamic-programming', 'title': 'Dynamic Programming', 'description': 'Memoization and tabulation'},
+            {'id': 'savgol', 'title': 'Savitzky-Golay Filter',
+             'description': 'Understanding of Savitzky-Golay Filter, Polyorder, Window.'}
         ]
     },
     'python': {
@@ -93,7 +88,20 @@ TOPICS = {
                 'visualization, 1D Conv, Local Pattern Detection,Dimensionality Reduction'},
 
         ]
-    }
+    },
+    'dsa': {
+        'name': 'Data Structures',
+        'icon': '⌗',
+        'color': '#43e97b',
+        'subtopics': [
+            {'id': 'linked-lists', 'title': 'Linked Lists', 'description': 'Single, double, circular'},
+            {'id': 'stacks-queues', 'title': 'Stacks & Queues', 'description': 'LIFO and FIFO structures'},
+            {'id': 'trees', 'title': 'Trees', 'description': 'Binary trees, BST, AVL'},
+            {'id': 'graphs', 'title': 'Graphs', 'description': 'BFS, DFS, shortest path'},
+            {'id': 'sorting', 'title': 'Sorting Algorithms', 'description': 'Quick, merge, heap sort'},
+            {'id': 'dynamic-programming', 'title': 'Dynamic Programming', 'description': 'Memoization and tabulation'},
+        ]
+    },
 }
 
 
@@ -124,8 +132,15 @@ def content_detail(topic_id, subtopic_id):
                 return render_template('neural-networks.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             elif subtopic_id == 'optimizers':
                 return render_template('optimizers.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
-            elif subtopic_id=='ts-modeling':
-                return render_template('/time_series/ts_modeling.html',topic=topic,subtopic=subtopic,topic_id=topic_id)
+            elif subtopic_id == 'interpolation':
+                return render_template("stat/imputation_interpolation.html", topic=topic, subtopic=subtopic,
+                                       topic_id=topic_id)
+            elif subtopic_id == 'ts-modeling':
+                return render_template('/time_series/ts_modeling.html', topic=topic, subtopic=subtopic,
+                                       topic_id=topic_id)
+            elif subtopic_id == 'savgol':
+                return render_template('/data_preprocessing/savgol.html', topic=topic, subtopic=subtopic,
+                                       topic_id=topic_id)
             elif subtopic_id == 'seg-emb':
                 return render_template('segmentation_embedding.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
