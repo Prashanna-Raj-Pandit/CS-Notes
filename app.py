@@ -10,8 +10,6 @@ TOPICS = {
         'icon': '📊',
         'color': '#667eea',
         'subtopics': [
-            {'id': 'interpolation', 'title': 'Interpolation and Imputation',
-             'description': 'Understanding of filling missing values.'},
             {'id': 'probability', 'title': 'Probability Theory',
              'description': 'Basics of probability and distributions'},
             {'id': 'hypothesis-testing', 'title': 'Hypothesis Testing', 'description': 't-test, chi-square, ANOVA'},
@@ -61,6 +59,8 @@ TOPICS = {
         'icon': '🔢',
         'color': '#43e97b',
         'subtopics': [
+            {'id': 'interpolation', 'title': 'Interpolation and Imputation',
+             'description': 'Understanding of filling missing values.'},
             {'id': 'savgol', 'title': 'Savitzky-Golay Filter',
              'description': 'Understanding of Savitzky-Golay Filter, Polyorder, Window.'}
         ]
@@ -86,6 +86,8 @@ TOPICS = {
                 'Segmentation -> Normalization-> Embedding ->classify'},
             {'id': 'ts-modeling', 'title': 'Time series Modeling', 'description':
                 'visualization, 1D Conv, Local Pattern Detection,Dimensionality Reduction'},
+            {'id': 'hybrid_model', 'title': 'Hybrid ASD Classification Pipeline',
+             'description': 'Understanding of Hybrid Multi-View ASD Classification Pipeline'},
 
         ]
     },
@@ -133,7 +135,7 @@ def content_detail(topic_id, subtopic_id):
             elif subtopic_id == 'optimizers':
                 return render_template('optimizers.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             elif subtopic_id == 'interpolation':
-                return render_template("stat/imputation_interpolation.html", topic=topic, subtopic=subtopic,
+                return render_template("data_preprocessing/imputation_interpolation.html", topic=topic, subtopic=subtopic,
                                        topic_id=topic_id)
             elif subtopic_id == 'ts-modeling':
                 return render_template('/time_series/ts_modeling.html', topic=topic, subtopic=subtopic,
@@ -141,6 +143,8 @@ def content_detail(topic_id, subtopic_id):
             elif subtopic_id == 'savgol':
                 return render_template('/data_preprocessing/savgol.html', topic=topic, subtopic=subtopic,
                                        topic_id=topic_id)
+            elif subtopic_id=='hybrid_model':
+                return render_template('/time_series/hybrid_model.html',topic=topic,subtopic=subtopic,topic_id=topic_id)
             elif subtopic_id == 'seg-emb':
                 return render_template('segmentation_embedding.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
@@ -165,4 +169,4 @@ def search():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host="0.0.0.0",debug=True)

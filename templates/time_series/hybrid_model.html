@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid ASD Classification Pipeline</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            border-bottom: 3px solid #4a90e2;
+            padding-bottom: 15px;
+        }
+
+        h2 {
+            color: #4a90e2;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-left: 4px solid #4a90e2;
+            padding-left: 10px;
+        }
+
+        h3 {
+            color: #555;
+            margin-top: 20px;
+        }
+
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #4a90e2;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .step h3 {
+            margin-top: 0;
+            color: #4a90e2;
+        }
+
+        ul {
+            line-height: 1.8;
+        }
+
+        .code {
+            background-color: #2d2d2d;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .architecture {
+            border: 2px solid #ddd;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 10px;
+            background-color: #fafafa;
+        }
+
+        .branches {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .branch {
+            flex: 1;
+            border: 2px solid #4a90e2;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: white;
+        }
+
+        .branch-title {
+            background-color: #4a90e2;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .layer {
+            background-color: #e8f4f8;
+            border: 1px solid #4a90e2;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .layer-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .layer-params {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .arrow {
+            text-align: center;
+            font-size: 24px;
+            color: #4a90e2;
+            margin: 10px 0;
+        }
+
+        .fusion {
+            background-color: #ff9800;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .output {
+            background-color: #4caf50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+
+        .highlight {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #4a90e2;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .input-box {
+            background-color: #e3f2fd;
+            border: 2px dashed #2196f3;
+            padding: 15px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hybrid Multi-View ASD Classification Pipeline</h1>
+
+        <h2>Pipeline Overview</h2>
+        <p>This pipeline uses a dual-branch deep learning model to classify Autism Spectrum Disorder (ASD) from gait analysis data captured from two different camera angles (front view and side view).</p>
+
+        <!-- STEP 1 -->
+        <div class="step">
+            <h3>Step 1: Data Loading & Pairing</h3>
+            <ul>
+                <li>Loads CSV files from <code>./output_normalized</code> directory</li>
+                <li>Pairs front view (_F_) and side view (_S_) data for each subject</li>
+                <li>Labeling:
+                    <ul>
+                        <li>Subject ID < 200 → No-ASD (Label: 0)</li>
+                        <li>Subject ID ≥ 200 → ASD (Label: 1)</li>
+                    </ul>
+                </li>
+            </ul>
+            <div class="code">
+X1 (Front View): (n_subjects, timesteps, features)
+X2 (Side View):  (n_subjects, timesteps, features)
+labels:          (n_subjects,)
+            </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step">
+            <h3>Step 2: Train-Test Split</h3>
+            <ul>
+                <li>Split: 70% Training, 30% Testing</li>
+                <li>Stratified split to maintain class distribution</li>
+                <li>Random seed: 42 for reproducibility</li>
+            </ul>
+            <div class="code">
+Training: X1_train, X2_train, y_train (70%)
+Testing:  X1_test, X2_test, y_test (30%)
+            </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step">
+            <h3>Step 3: Class Imbalance Handling (SMOTE)</h3>
+            <p><strong>Problem:</strong> Imbalanced number of ASD vs No-ASD samples</p>
+            <p><strong>Solution:</strong> SMOTE (Synthetic Minority Over-sampling Technique)</p>
+            <ul>
+                <li>Flatten 3D data to 2D</li>
+                <li>Concatenate front and side views</li>
+                <li>Apply SMOTE to generate synthetic samples</li>
+                <li>Split back and reshape to 3D</li>
+                <li>Create validation set (30% of resampled data)</li>
+            </ul>
+            <div class="code">
+After SMOTE:
+- X1_final, X2_final: Training (70% of resampled)
+- X1_val, X2_val: Validation (30% of resampled)
+- y_train_final, y_val: Balanced labels
+            </div>
+            <div class="highlight">
+                <strong>Important:</strong> SMOTE is only applied to training data. Test set remains original to evaluate real-world performance.
+            </div>
+        </div>
+
+        <!-- MODEL ARCHITECTURE -->
+        <h2>Model Architecture</h2>
+
+        <div class="architecture">
+            <h3 style="text-align: center;">Dual-Branch CNN-LSTM Model</h3>
+
+            <div class="input-box">
+                <strong>INPUT</strong><br>
+                Front View: (timesteps, features)<br>
+                Side View: (timesteps, features)
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <div class="branches">
+                <!-- FRONT BRANCH -->
+                <div class="branch">
+                    <div class="branch-title">FRONT BRANCH</div>
+
+                    <div class="layer">
+                        <div class="layer-name">Conv1D</div>
+                        <div class="layer-params">
+                            Filters: 16<br>
+                            Kernel: 4<br>
+                            Activation: ReLU
+                        </div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div class="layer">
+                        <div class="layer-name">Batch Normalization</div>
+                        <div class="layer-params">Normalizes activations</div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div class="layer">
+                        <div class="layer-name">LSTM</div>
+                        <div class="layer-params">
+                            Units: 10<br>
+                            Return Sequences: False
+                        </div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div class="layer">
+                        <div class="layer-name">Dense</div>
+                        <div class="layer-params">
+                            Units: 32<br>
+                            Activation: ReLU
+                        </div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div style="text-align: center; font-weight: bold; color: #4a90e2;">
+                        Output: 32 features
+                    </div>
+                </div>
+
+                <!-- SIDE BRANCH -->
+                <div class="branch">
+                    <div class="branch-title">SIDE BRANCH</div>
+
+                    <div class="layer">
+                        <div class="layer-name">Conv1D</div>
+                        <div class="layer-params">
+                            Filters: 16<br>
+                            Kernel: 3<br>
+                            Padding: Same<br>
+                            Activation: ReLU
+                        </div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div class="layer">
+                        <div class="layer-name">Batch Normalization</div>
+                        <div class="layer-params">Normalizes activations</div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div class="layer">
+                        <div class="layer-name">LSTM</div>
+                        <div class="layer-params">
+                            Units: 8<br>
+                            Return Sequences: False<br>
+                            Dropout: 0.3
+                        </div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div class="layer">
+                        <div class="layer-name">Dense</div>
+                        <div class="layer-params">
+                            Units: 32<br>
+                            Activation: ReLU
+                        </div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div style="text-align: center; font-weight: bold; color: #4a90e2;">
+                        Output: 32 features
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">↓ ↓</div>
+
+            <div class="fusion">
+                CONCATENATION (Feature Fusion)<br>
+                32 features (Front) + 32 features (Side) = 64 total features
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <div class="output">
+                OUTPUT LAYER<br>
+                Dense(1, activation='sigmoid')<br>
+                Binary Classification: 0 (No-ASD) or 1 (ASD)
+            </div>
+        </div>
+
+        <!-- TRAINING -->
+        <h2>Training Configuration</h2>
+
+        <table>
+            <tr>
+                <th>Parameter</th>
+                <th>Value</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>Optimizer</td>
+                <td>Adam</td>
+                <td>Adaptive learning rate optimizer</td>
+            </tr>
+            <tr>
+                <td>Learning Rate</td>
+                <td>0.001</td>
+                <td>Initial learning rate</td>
+            </tr>
+            <tr>
+                <td>Loss Function</td>
+                <td>Binary Crossentropy</td>
+                <td>For binary classification</td>
+            </tr>
+            <tr>
+                <td>Batch Size</td>
+                <td>32</td>
+                <td>Samples per gradient update</td>
+            </tr>
+            <tr>
+                <td>Max Epochs</td>
+                <td>200</td>
+                <td>Maximum training iterations</td>
+            </tr>
+            <tr>
+                <td>Class Weights</td>
+                <td>Balanced</td>
+                <td>Additional imbalance handling</td>
+            </tr>
+        </table>
+
+        <div class="step">
+            <h3>Callbacks</h3>
+            <ul>
+                <li><strong>Early Stopping:</strong> Stops training if validation loss doesn't improve for 15 epochs</li>
+                <li><strong>Model Checkpoint:</strong> Saves best model to "v2_best_model.keras"</li>
+                <li><strong>Reduce Learning Rate:</strong> Reduces LR by 0.5 if no improvement for 5 epochs</li>
+            </ul>
+        </div>
+
+        <!-- EVALUATION -->
+        <h2>Model Evaluation</h2>
+
+        <div class="step">
+            <h3>Metrics</h3>
+            <ul>
+                <li><strong>Test Accuracy:</strong> Overall classification accuracy</li>
+                <li><strong>Confusion Matrix:</strong> Shows True Positives, False Positives, True Negatives, False Negatives</li>
+                <li><strong>Classification Report:</strong> Precision, Recall, F1-Score for both classes</li>
+                <li><strong>Training History:</strong> Plotted and saved as "combined_model.png"</li>
+            </ul>
+        </div>
+
+        <!-- KEY INSIGHTS -->
+        <h2>Why This Architecture Works</h2>
+
+        <div class="highlight">
+            <ul>
+                <li><strong>Conv1D Layers:</strong> Extract spatial features from gait sequences (local movement patterns)</li>
+                <li><strong>LSTM Layers:</strong> Capture temporal dependencies (how gait evolves over time)</li>
+                <li><strong>Batch Normalization:</strong> Stabilizes training and speeds up convergence</li>
+                <li><strong>Dual-Branch Design:</strong> Each view captures unique information; combining improves accuracy</li>
+                <li><strong>Late Fusion:</strong> Allows each branch to learn view-specific features before final decision</li>
+                <li><strong>Dropout:</strong> Prevents overfitting by randomly disabling neurons during training</li>
+            </ul>
+        </div>
+
+        <div style="background-color: #4a90e2; color: white; padding: 20px; border-radius: 8px; margin-top: 30px;">
+            <h3 style="color: white; margin-top: 0;">Summary</h3>
+            <p>This hybrid model processes gait data from two camera angles, extracts spatial and temporal features using CNN-LSTM architecture, and combines them for robust ASD classification. The pipeline includes stratified splitting, SMOTE for class balance, and multiple training optimizations.</p>
+        </div>
+    </div>
+</body>
+</html>
