@@ -10,8 +10,8 @@ TOPICS = {
         'icon': '📊',
         'color': '#667eea',
         'subtopics': [
-            {'id': 'probability', 'title': 'Probability Theory',
-             'description': 'Basics of probability and distributions'},
+            {'id': 'bias-variance', 'title': 'Bias Variance Tradeoff',
+             'description': 'Understanding of Under fitting (Bias) and Overfitting(Variance)'},
             {'id': 'hypothesis-testing', 'title': 'Hypothesis Testing', 'description': 't-test, chi-square, ANOVA'},
             {'id': 'regression-analysis', 'title': 'Regression Analysis',
              'description': 'Linear and logistic regression'},
@@ -147,6 +147,10 @@ def content_detail(topic_id, subtopic_id):
                 return render_template('/time_series/hybrid_model.html',topic=topic,subtopic=subtopic,topic_id=topic_id)
             elif subtopic_id == 'seg-emb':
                 return render_template('segmentation_embedding.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
+
+            ## Stat
+            elif subtopic_id=='bias-variance':
+                return render_template("/stat/bias_variance_tradeoff_note.html",topic=topic,subtopic=subtopic,topic_id=topic_id)
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
     return "Content not found", 404
 

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bias–Variance Tradeoff: Complete Note</title>
+  <style>
+    :root{
+      --bg: #0f172a;           /* slate-900 */
+      --panel: #0b1224;        /* darker slate */
+      --card: #111a33;         /* card background */
+      --muted: #93a4c8;        /* muted text */
+      --text: #e6ecff;         /* main text */
+      --accent: #7aa2ff;       /* brand/accent */
+      --accent-2: #a1f0d1;     /* secondary accent */
+      --border: #1e2a4a;
+      --shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02);
+      --radius: 18px;
+    }
+
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f6f8ff;
+        --panel:#eef2ff;
+        --card:#ffffff;
+        --muted:#5b6b8c;
+        --text:#0b1430;
+        --accent:#355cff;
+        --accent-2:#0dbb88;
+        --border:#dde5ff;
+        --shadow: 0 10px 30px rgba(0,30,100,.08), inset 0 1px 0 rgba(255,255,255,.9);
+      }
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:linear-gradient(180deg,var(--panel),var(--bg));color:var(--text);font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Cantarell, Noto Sans, Ubuntu, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";}
+
+    .container{
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 24px;
+    }
+
+    .shell{
+      display:grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 980px){
+      .shell{ grid-template-columns: 1fr; }
+    }
+
+    .sidebar{
+      position: sticky;
+      top: 24px;
+      align-self: start;
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+    .sidebar h2{
+      margin:0 0 10px;
+      font-size: 18px;
+      letter-spacing:.3px;
+    }
+    .toc a{
+      display:block;
+      padding: 10px 12px;
+      margin: 4px 0;
+      text-decoration:none;
+      color: var(--text);
+      border-radius: 12px;
+      border:1px solid transparent;
+      transition:.15s ease;
+      font-size: 15px;
+    }
+    .toc a:hover{ background: rgba(122,162,255,.12); border-color: var(--border); }
+    .toc a:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .content{
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    header.hero{
+      background: radial-gradient(1200px 300px at 10% -20%, rgba(122,162,255,.18), transparent 60%),
+                  radial-gradient(1200px 300px at 90% -20%, rgba(161,240,209,.18), transparent 60%);
+      border-radius: calc(var(--radius) - 4px);
+      border: 1px solid var(--border);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .eyebrow{
+      display:inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(122,162,255,.15);
+      color: var(--accent);
+      border:1px solid var(--border);
+      font-weight:600;
+      font-size: 12px;
+      letter-spacing:.35px;
+      text-transform: uppercase;
+    }
+    h1{ font-size: 34px; margin: 12px 0 6px; }
+    p.lead{ color: var(--muted); margin: 0; font-size: 16px; }
+
+    section{
+      padding: 14px 6px 22px;
+      border-top: 1px dashed var(--border);
+      scroll-margin-top: 90px;
+    }
+    section:first-of-type{ border-top: 0; }
+    h2{ font-size: 24px; margin: 6px 0 10px; }
+    h3{ font-size: 18px; margin: 18px 0 8px; color: var(--accent); }
+    p, li{ line-height: 1.7; font-size: 15.5px; color: var(--text); }
+    code, pre{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    pre{
+      background: #0a1224;
+      color: #e7eaff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      overflow:auto;
+    }
+    @media (prefers-color-scheme: light){
+      pre{ background:#f5f7ff; color:#1a2450; }
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 14px;
+    }
+    @media (max-width: 900px){ .grid{ grid-template-columns: 1fr; } }
+
+    .card{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
+      padding: 16px;
+    }
+
+    .tag{
+      display:inline-block; padding:4px 8px; border-radius:8px;
+      background: rgba(13,187,136,.12);
+      color: var(--accent-2); font-weight:600; border:1px solid var(--border);
+      font-size: 12px; letter-spacing:.25px;
+    }
+
+    .callout{
+      background: linear-gradient(180deg, rgba(122,162,255,.12), transparent);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      padding: 12px 14px;
+      border-radius: 12px;
+    }
+
+    .kv{
+      display:grid; grid-template-columns: 160px 1fr; gap: 8px; align-items: start;
+    }
+    @media (max-width:600px){ .kv{ grid-template-columns: 1fr; } }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px; padding:8px 10px;
+      border-radius:999px; border:1px solid var(--border); background: rgba(255,255,255,.02);
+      box-shadow: var(--shadow); font-size:13px;
+    }
+
+    /* Simple collapsible (no JS) */
+    details{
+      border:1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
+      margin: 10px 0;
+    }
+    details summary{
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--accent);
+      list-style: none;
+    }
+    details summary::-webkit-details-marker{ display:none; }
+
+    /* SVG boards */
+    .svg-wrap{ background:linear-gradient(180deg, rgba(0,0,0,.08), transparent); border:1px solid var(--border); border-radius:12px; padding:12px; }
+    .caption{ color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+    footer{
+      margin-top: 32px;
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .btn{
+      background: linear-gradient(180deg, var(--accent), #3a64ff);
+      color: white; text-decoration: none; padding: 10px 14px; border-radius: 12px;
+      border: 0; display:inline-block; font-weight:700; letter-spacing:.2px;
+      box-shadow: 0 6px 20px rgba(53,92,255,.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="shell">
+      <aside class="sidebar">
+        <h2>Contents</h2>
+        <nav class="toc">
+          <a href="#intro">What is the Bias–Variance Tradeoff?</a>
+          <a href="#intuitive">Intuitive View</a>
+          <a href="#two-biases">Bias vs “Bias in Data”</a>
+          <a href="#variance-meaning">What “Variance” Means Here</a>
+          <a href="#dartboard">Dartboard Analogy</a>
+          <a href="#math">Mathematical Decomposition</a>
+          <a href="#graph">Error vs. Complexity</a>
+          <a href="#practical">How to Control the Tradeoff</a>
+          <a href="#mental">Quick Mental Trick</a>
+          <a href="#code">Mini Code Example</a>
+          <a href="#summary">Summary</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="hero">
+          <span class="eyebrow">Machine Learning Notes</span>
+          <h1>Bias–Variance Tradeoff</h1>
+          <p class="lead">Why simple models underfit, complex models overfit, and how to find the “sweet spot” for generalization.</p>
+        </header>
+
+        <section id="intro">
+          <h2>What is the Bias–Variance Tradeoff?</h2>
+          <p>
+            The bias–variance tradeoff explains why a model’s test performance worsens when it is too simple (high <strong>bias</strong>) or too complex (high <strong>variance</strong>).
+            Our goal is a model that balances both, minimizing total generalization error.
+          </p>
+          <div class="grid">
+            <div class="card kv">
+              <div><span class="tag">Bias (Model)</span></div>
+              <div>Systematic error from simplifying assumptions; the model <em>ignores real patterns</em>. Leads to <strong>underfitting</strong>.</div>
+            </div>
+            <div class="card kv">
+              <div><span class="tag">Variance (Model)</span></div>
+              <div>Instability: predictions change significantly across training samples; the model <em>chases noise</em>. Leads to <strong>overfitting</strong>.</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="intuitive">
+          <h2>Intuitive View</h2>
+          <div class="grid">
+            <div class="card">
+              <h3>High Bias → Underfitting</h3>
+              <ul>
+                <li>Overly simplistic assumptions (e.g., a straight line for a curved trend).</li>
+                <li>Poor training and test performance.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>High Variance → Overfitting</h3>
+              <ul>
+                <li>Overly sensitive to data noise (fits fluctuations rather than the pattern).</li>
+                <li>Great training performance, poor test performance.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="two-biases">
+          <h2>Bias vs “Bias in Data” (Why the term is confusing)</h2>
+          <p>
+            The word <em>bias</em> is overloaded. In ethics/statistics, it refers to unfairness or representation issues in the dataset (e.g., imbalanced data).
+            In the tradeoff, <strong>bias means the model’s systematic error</strong>: how far the average prediction is from the true function.
+          </p>
+          <div class="grid">
+            <div class="card">
+              <h3>Bias in Data (Fairness)</h3>
+              <p>Imbalances or prejudices in the dataset that can produce unfair outcomes. Addressed with data collection, rebalancing, fairness constraints, etc.</p>
+            </div>
+            <div class="card">
+              <h3>Bias in Model (Tradeoff)</h3>
+              <p>Due to simplifying assumptions; the model can’t express the true relationship well. Addressed by adding capacity/features, reducing regularization, etc.</p>
+            </div>
+          </div>
+          <div class="callout"><strong>Key distinction:</strong> “Data bias” is about fairness. “Model bias” is about systematic error due to simplicity.</div>
+        </section>
+
+        <section id="variance-meaning">
+          <h2>What “Variance” Means in the Tradeoff</h2>
+          <p>
+            Variance here measures how much a model’s predictions change when trained on different samples from the same population.
+            High-variance models are <em>unstable</em>: small data changes ⇒ very different predictions.
+          </p>
+          <ul>
+            <li>Decision trees/deep nets on small data → often high variance.</li>
+            <li>Linear models/ridge regression → typically lower variance.</li>
+          </ul>
+        </section>
+
+        <section id="dartboard">
+          <h2>Dartboard Analogy</h2>
+          <div class="grid">
+            <div class="card svg-wrap">
+              <svg viewBox="0 0 260 220" width="100%" height="220" role="img" aria-label="Dartboard bias/variance">
+                <!-- Board -->
+                <defs>
+                  <radialGradient id="g" cx="50%" cy="50%" r="60%">
+                    <stop offset="0%" stop-color="#a1f0d1" stop-opacity="0.35"/>
+                    <stop offset="100%" stop-color="#7aa2ff" stop-opacity="0.1"/>
+                  </radialGradient>
+                </defs>
+                <circle cx="130" cy="110" r="90" fill="url(#g)" stroke="#3a4a7a" stroke-width="2"/>
+                <circle cx="130" cy="110" r="6" fill="#7aa2ff"/>
+                <!-- Clusters -->
+                <!-- High bias, low variance: tight but off-center -->
+                <g>
+                  <circle cx="60" cy="60" r="3" fill="#a1f0d1"/>
+                  <circle cx="62" cy="56" r="3" fill="#a1f0d1"/>
+                  <circle cx="58" cy="62" r="3" fill="#a1f0d1"/>
+                  <circle cx="64" cy="60" r="3" fill="#a1f0d1"/>
+                </g>
+                <!-- Low bias, high variance: scattered around center -->
+                <g>
+                  <circle cx="120" cy="80" r="3" fill="#7aa2ff"/>
+                  <circle cx="150" cy="130" r="3" fill="#7aa2ff"/>
+                  <circle cx="100" cy="140" r="3" fill="#7aa2ff"/>
+                  <circle cx="170" cy="100" r="3" fill="#7aa2ff"/>
+                </g>
+              </svg>
+              <div class="caption">Bias = distance from center (systematic error). Variance = spread of the darts (instability).</div>
+            </div>
+            <div class="card">
+              <p><strong>Low Bias, Low Variance:</strong> tight cluster at the bullseye.</p>
+              <p><strong>High Bias, Low Variance:</strong> tight cluster far from center (consistently wrong).</p>
+              <p><strong>Low Bias, High Variance:</strong> scattered around the center (inconsistent).</p>
+              <p><strong>High Bias, High Variance:</strong> scattered and far (worst of both).</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="math">
+          <h2>Mathematical Decomposition</h2>
+          <p>The expected squared error at input <code>x</code> decomposes as:</p>
+          <pre><code>E[(Y - ŷ(x))²] = ( E[ŷ(x)] - f(x) )²   +   E[( ŷ(x) - E[ŷ(x)] )²]   +   σ²
+                   ↑ Bias² (systematic)        ↑ Variance (instability)     ↑ Irreducible noise</code></pre>
+          <ul>
+            <li><strong>Bias²:</strong> how far the average model is from truth.</li>
+            <li><strong>Variance:</strong> how much the model wiggles around its own average across different samples.</li>
+            <li><strong>Irreducible noise (σ²):</strong> randomness in data we can’t remove.</li>
+          </ul>
+        </section>
+
+        <section id="graph">
+          <h2>Error vs. Model Complexity</h2>
+          <div class="card svg-wrap">
+            <svg viewBox="0 0 600 280" width="100%" height="260" role="img" aria-label="Error vs Complexity">
+              <rect x="0" y="0" width="600" height="280" fill="transparent"/>
+              <!-- Axes -->
+              <line x1="50" y1="230" x2="560" y2="230" stroke="#3a4a7a" stroke-width="2"/>
+              <line x1="50" y1="230" x2="50" y2="40"  stroke="#3a4a7a" stroke-width="2"/>
+              <text x="565" y="235" font-size="12" fill="#93a4c8">Complexity →</text>
+              <text x="10" y="50" font-size="12" fill="#93a4c8">Error</text>
+              <!-- Curves (hand-drawn cubic paths) -->
+              <!-- Bias² decreases -->
+              <path d="M 50 90 C 160 100, 260 150, 560 210" fill="none" stroke="#a1f0d1" stroke-width="3"/>
+              <!-- Variance increases -->
+              <path d="M 50 210 C 220 190, 360 150, 560 90" fill="none" stroke="#7aa2ff" stroke-width="3"/>
+              <!-- Total U-shape -->
+              <path d="M 50 185 C 180 160, 320 120, 560 130" fill="none" stroke="#e8eaff" stroke-width="3" stroke-dasharray="6 6"/>
+              <!-- Sweet spot -->
+              <circle cx="330" cy="128" r="5" fill="#7aa2ff"/>
+              <text x="340" y="120" font-size="12" fill="#93a4c8">Sweet spot</text>
+              <g>
+                <rect x="410" y="40" width="170" height="60" rx="8" ry="8" fill="rgba(0,0,0,.08)" stroke="#3a4a7a"/>
+                <circle cx="430" cy="60" r="5" fill="#a1f0d1"/><text x="442" y="64" font-size="12" fill="#93a4c8">Bias²</text>
+                <circle cx="430" cy="76" r="5" fill="#7aa2ff"/><text x="442" y="80" font-size="12" fill="#93a4c8">Variance</text>
+                <rect x="424" y="87" width="10" height="2" fill="#e8eaff"/><text x="442" y="92" font-size="12" fill="#93a4c8">Total</text>
+              </g>
+            </svg>
+            <div class="caption">As complexity increases, bias decreases and variance increases; total error is U-shaped.</div>
+          </div>
+        </section>
+
+        <section id="practical">
+          <h2>How to Control the Tradeoff (Practical Tips)</h2>
+          <div class="grid">
+            <div class="card">
+              <h3>Reduce Variance (tame overfitting)</h3>
+              <ul>
+                <li>Regularization (L2/Ridge, L1/Lasso, weight decay, dropout).</li>
+                <li>More training data / data augmentation.</li>
+                <li>Ensembles: bagging, random forests, snapshot ensembles.</li>
+                <li>Early stopping; simpler architectures.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Reduce Bias (fix underfitting)</h3>
+              <ul>
+                <li>Add features, increase model capacity (deeper/wider nets, higher-degree polynomials).</li>
+                <li>Reduce regularization strength.</li>
+                <li>Use more expressive models (kernels, residual connections).</li>
+              </ul>
+            </div>
+          </div>
+          <details>
+            <summary>Common diagnostics</summary>
+            <ul>
+              <li><strong>High bias:</strong> train error high, val/test error also high → model too simple.</li>
+              <li><strong>High variance:</strong> train error low, val/test error much higher → model overfits.</li>
+              <li>Use cross-validation curves and learning curves to locate the sweet spot.</li>
+            </ul>
+          </details>
+        </section>
+
+        <section id="mental">
+          <h2>Quick Mental Trick</h2>
+          <div class="card">
+            <p class="pill">Bias = model’s simplicity → <em>ignores patterns</em>.</p>
+            <p class="pill">Variance = model’s sensitivity → <em>chases noise</em>.</p>
+            <p style="margin-top:8px;">Or even shorter: <strong>“Bias ignores. Variance chases.”</strong></p>
+          </div>
+        </section>
+
+        <section id="code">
+          <h2>Mini Code Example (Polynomial fit intuition)</h2>
+          <pre><code># Python / scikit-learn sketch
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+rng = np.random.default_rng(0)
+X = np.linspace(0, 6, 30)[:, None]
+y = np.sin(X).ravel() + rng.normal(0, 0.3, len(X))
+
+Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.3, random_state=42)
+
+for d in (1, 3, 9):
+    poly = PolynomialFeatures(degree=d, include_bias=False)
+    model = LinearRegression().fit(poly.fit_transform(Xtr), ytr)
+    mse_train = mean_squared_error(ytr, model.predict(poly.transform(Xtr)))
+    mse_test  = mean_squared_error(yte, model.predict(poly.transform(Xte)))
+    print(f"degree={d:>2}  train_MSE={mse_train:.3f}  test_MSE={mse_test:.3f}")
+# Expect: d=1 underfits (high bias); d=9 overfits (high variance).</code></pre>
+        </section>
+
+        <section id="summary">
+          <h2>Summary</h2>
+          <ul>
+            <li><strong>Bias</strong> (in tradeoff) ≠ fairness bias. It’s systematic error from simplicity.</li>
+            <li><strong>Variance</strong> is prediction instability across different samples.</li>
+            <li>As model complexity increases: bias ↓, variance ↑. Seek the sweet spot.</li>
+            <li>Use regularization/ensembles/more data to reduce variance; increase capacity to reduce bias.</li>
+            <li>Quick recall: <strong>“Bias ignores. Variance chases.”</strong></li>
+          </ul>
+        </section>
+
+        <footer>
+          <div>© 2025 • Bias–Variance Tradeoff note • Built for web publishing</div>
+          <a class="btn" href="#intro">Back to Top</a>
+        </footer>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
