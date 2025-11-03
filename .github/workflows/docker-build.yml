@@ -12,16 +12,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Login to DOcker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{secrets.DOCKER_HUB_USERNAME}}
-          password: ${{secrets.DOCKER_HUB_ACCESS_TOKEN}}
-
-      - name: Build and push Docker Image
-        uses: docker/build-push-action@v4
-        with: 
-          context: .
-          push: true
-          tags: prashannarajpandit/ppnotes:latest
+      - run: |
+          docker build . -t prashannarajpandit/ppnotes
+          echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN}}" | docker login -u "${{secrets.DOCKER_HUB_USERNAME}}" --password-stdin
+          docker push prashannarajpandit/ppnotes
