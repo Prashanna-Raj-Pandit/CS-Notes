@@ -135,7 +135,8 @@ def content_detail(topic_id, subtopic_id):
             elif subtopic_id == 'optimizers':
                 return render_template('optimizers.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             elif subtopic_id == 'interpolation':
-                return render_template("data_preprocessing/imputation_interpolation.html", topic=topic, subtopic=subtopic,
+                return render_template("data_preprocessing/imputation_interpolation.html", topic=topic,
+                                       subtopic=subtopic,
                                        topic_id=topic_id)
             elif subtopic_id == 'ts-modeling':
                 return render_template('/time_series/ts_modeling.html', topic=topic, subtopic=subtopic,
@@ -143,14 +144,16 @@ def content_detail(topic_id, subtopic_id):
             elif subtopic_id == 'savgol':
                 return render_template('/data_preprocessing/savgol.html', topic=topic, subtopic=subtopic,
                                        topic_id=topic_id)
-            elif subtopic_id=='hybrid_model':
-                return render_template('/time_series/hybrid_model.html',topic=topic,subtopic=subtopic,topic_id=topic_id)
+            elif subtopic_id == 'hybrid_model':
+                return render_template('/time_series/hybrid_model.html', topic=topic, subtopic=subtopic,
+                                       topic_id=topic_id)
             elif subtopic_id == 'seg-emb':
                 return render_template('segmentation_embedding.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
 
             ## Stat
-            elif subtopic_id=='bias-variance':
-                return render_template("/stat/bias_variance_tradeoff_note.html",topic=topic,subtopic=subtopic,topic_id=topic_id)
+            elif subtopic_id == 'bias-variance':
+                return render_template("/stat/bias_variance_tradeoff_note.html", topic=topic, subtopic=subtopic,
+                                       topic_id=topic_id)
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
     return "Content not found", 404
 
@@ -173,4 +176,4 @@ def search():
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0",debug=True)
+    app.run(host="0.0.0.0", debug=True)
