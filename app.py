@@ -84,6 +84,9 @@ TOPICS = {
         'subtopics': [
             {'id': 'seg-emb', 'title': 'Time series segmentation and Embeddings', 'description':
                 'Segmentation -> Normalization-> Embedding ->classify'},
+            {'id': 'tsmote', 'title': 'T-SMOTE', 'description':
+                'Understanding of T-SMOTE and SMOTE vs T-SMOTE'},
+
             {'id': 'ts-modeling', 'title': 'Time series Modeling', 'description':
                 'visualization, 1D Conv, Local Pattern Detection,Dimensionality Reduction'},
             {'id': 'hybrid_model', 'title': 'Hybrid ASD Classification Pipeline',
@@ -144,6 +147,8 @@ def content_detail(topic_id, subtopic_id):
             elif subtopic_id == 'savgol':
                 return render_template('/data_preprocessing/savgol.html', topic=topic, subtopic=subtopic,
                                        topic_id=topic_id)
+            elif subtopic_id == 'tsmote':
+                return render_template('/time_series/tsmote.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             elif subtopic_id == 'hybrid_model':
                 return render_template('/time_series/hybrid_model.html', topic=topic, subtopic=subtopic,
                                        topic_id=topic_id)

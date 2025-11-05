@@ -1,0 +1,1799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T-SMOTE: Complete Technical Manual</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: 1.3em;
+            opacity: 0.95;
+            margin-bottom: 10px;
+        }
+
+        .version-info {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 20px;
+        }
+
+        .toc {
+            background: #f8f9fa;
+            padding: 30px 40px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .toc h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .toc a {
+            color: #2c3e50;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: color 0.3s;
+        }
+
+        .toc a:hover {
+            color: #667eea;
+        }
+
+        .toc-number {
+            font-weight: bold;
+            margin-right: 15px;
+            color: #667eea;
+            min-width: 30px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .section h4 {
+            color: #667eea;
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .icon {
+            font-size: 1.2em;
+        }
+
+        .note-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .note-box h4 {
+            color: #1976d2;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .warning-box h4 {
+            color: #e65100;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .problem-box {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .problem-box h4 {
+            color: #c62828;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .solution-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .solution-box h4 {
+            color: #2e7d32;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .math-box {
+            background: #263238;
+            color: #aed581;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            border: 2px solid #37474f;
+        }
+
+        .code-box {
+            background: #263238;
+            color: #aed581;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-title {
+            background: #37474f;
+            color: white;
+            padding: 8px 15px;
+            margin: -20px -20px 15px -20px;
+            border-radius: 6px 6px 0 0;
+            font-weight: 600;
+        }
+
+        .example-box {
+            background: #f3e5f5;
+            border: 2px dashed #9c27b0;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .example-box h4 {
+            color: #6a1b9a;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+            margin: 30px 0;
+        }
+
+        .timeline-item {
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+            padding-left: 60px;
+        }
+
+        .timeline-item::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 15px;
+            top: 20px;
+            width: 35px;
+            height: 35px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .highlight {
+            background: #ffeb3b;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .key-insight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 15px;
+            font-size: 1.1em;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .formula {
+            text-align: center;
+            padding: 15px;
+            font-size: 1.1em;
+            margin: 15px 0;
+        }
+
+        .visual-demo {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .sequence-row {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            align-items: center;
+        }
+
+        .sequence-box {
+            padding: 15px 20px;
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            font-weight: 600;
+            flex: 1;
+            text-align: center;
+        }
+
+        .label {
+            min-width: 100px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-top: 15px;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .comparison-item {
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .comparison-item.bad {
+            background: #ffebee;
+            border: 2px solid #f44336;
+        }
+
+        .comparison-item.good {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+        }
+
+        .comparison-item h4 {
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .why-box {
+            background: #fff9c4;
+            border: 3px solid #fbc02d;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 12px;
+        }
+
+        .why-box h3 {
+            color: #f57f17;
+            margin-top: 0;
+            border: none;
+        }
+
+        .algorithm-box {
+            background: white;
+            border: 2px solid #667eea;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 12px;
+        }
+
+        .algorithm-box h4 {
+            color: #667eea;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .step-list {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            margin: 15px 0;
+            padding-left: 40px;
+            position: relative;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #667eea;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .definition-box {
+            background: #e8eaf6;
+            border-left: 4px solid #3f51b5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .definition-box dt {
+            font-weight: bold;
+            color: #3f51b5;
+            margin-bottom: 5px;
+        }
+
+        .definition-box dd {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .related-work {
+            background: #fce4ec;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 2em;
+            }
+
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+
+            .sequence-row {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 T-SMOTE Technical Manual</h1>
+            <p>Temporal-SMOTE for Imbalanced Time-Series Classification</p>
+            <p style="font-size: 1em; margin-top: 10px;">A Complete Mathematical, Practical, and Implementation Guide</p>
+            <div class="version-info">
+                Based on: "T-SMOTE: Temporal-oriented Synthetic Minority Oversampling Technique for Imbalanced Time Series Classification"<br>
+                Authors: Microsoft Research | Published: IJCAI 2022
+            </div>
+        </header>
+
+        <!-- Table of Contents -->
+        <div class="toc">
+            <h2>📑 Table of Contents</h2>
+            <ul>
+                <li><a href="#intro"><span class="toc-number">1.</span> Introduction & Motivation</a></li>
+                <li><a href="#problem"><span class="toc-number">2.</span> The Problem with Standard SMOTE</a></li>
+                <li><a href="#timeseries"><span class="toc-number">3.</span> Understanding Time-Series Structure</a></li>
+                <li><a href="#leadingtime"><span class="toc-number">4.</span> The Leading Time Concept</a></li>
+                <li><a href="#confidence"><span class="toc-number">5.</span> Model Confidence Scores</a></li>
+                <li><a href="#beta"><span class="toc-number">6.</span> Beta Distribution & Mixing Weights</a></li>
+                <li><a href="#synthesis"><span class="toc-number">7.</span> Synthesizing New Samples</a></li>
+                <li><a href="#weighting"><span class="toc-number">8.</span> Weighted Sampling Strategy</a></li>
+                <li><a href="#algorithm"><span class="toc-number">9.</span> Complete Algorithm</a></li>
+                <li><a href="#implementation"><span class="toc-number">10.</span> Implementation Guide</a></li>
+                <li><a href="#practical"><span class="toc-number">11.</span> Practical Considerations</a></li>
+                <li><a href="#applications"><span class="toc-number">12.</span> Real-World Applications</a></li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <!-- Section 1: Introduction -->
+            <div class="section" id="intro">
+                <h2><span class="icon">🎯</span> 1. Introduction & Motivation</h2>
+
+                <p><strong>T-SMOTE (Temporal-SMOTE)</strong> is a specialized oversampling technique designed to address class imbalance in time-series classification problems while preserving temporal dependencies and dynamics.</p>
+
+                <h3>1.1 The Class Imbalance Problem</h3>
+                <p>In many real-world applications, datasets exhibit severe class imbalance where the minority class (positive cases) is significantly underrepresented compared to the majority class (negative cases). This imbalance causes several critical issues:</p>
+
+                <ul>
+                    <li><strong>Model Bias:</strong> Classifiers tend to predict the majority class to maximize overall accuracy</li>
+                    <li><strong>Poor Minority Detection:</strong> The minority class, often the one we care about most (e.g., disease, fraud, failure), gets ignored</li>
+                    <li><strong>Evaluation Pitfalls:</strong> High accuracy can be misleading when 95% of data belongs to one class</li>
+                    <li><strong>Business Impact:</strong> Missing rare events can have severe consequences (missed diagnoses, undetected fraud, equipment failures)</li>
+                </ul>
+
+                <div class="why-box">
+                    <h3>🤔 Why Do We Need T-SMOTE?</h3>
+                    <p><strong>The Real-World Scenarios:</strong></p>
+
+                    <h4>Medical Diagnosis</h4>
+                    <p>In gait analysis for autism spectrum disorder (ASD) detection, you might have 1000 normal gait sequences but only 50 ASD cases. Without proper handling, your LSTM model will simply learn to classify everything as "normal" and achieve 95% accuracy—completely missing the point.</p>
+
+                    <h4>Equipment Failure Prediction</h4>
+                    <p>Industrial sensors record thousands of hours of normal operation but only a few failure events. Predicting these rare failures is crucial for maintenance scheduling and preventing costly downtime.</p>
+
+                    <h4>Financial Fraud Detection</h4>
+                    <p>Among millions of legitimate transactions, fraudulent ones are rare but extremely costly. The temporal pattern of how fraud develops is key to detection.</p>
+
+                    <h4>Why Traditional Methods Fail</h4>
+                    <p>Standard oversampling techniques like SMOTE treat time series as static feature vectors, destroying the temporal order that contains critical information about how patterns evolve and transition between classes.</p>
+                </div>
+
+                <h3>1.2 Core Innovation of T-SMOTE</h3>
+                <p>T-SMOTE introduces three fundamental innovations:</p>
+
+                <ol>
+                    <li><strong>Temporal Awareness:</strong> Treats time as a first-class dimension, not just another feature</li>
+                    <li><strong>Progressive Subsequencing:</strong> Generates samples at different temporal positions using "leading times"</li>
+                    <li><strong>Confidence-Guided Synthesis:</strong> Uses model predictions to guide interpolation, ensuring synthetic samples are realistic and useful</li>
+                </ol>
+
+                <div class="key-insight">
+                    <strong>Core Principle:</strong> Instead of randomly mixing samples in feature space, T-SMOTE slides through time, creating synthetic sequences that represent earlier stages of pattern development. This allows models to learn transitional patterns—the gradual shift from normal to abnormal behavior.
+                </div>
+
+                <h3>1.3 Key Terminology</h3>
+                <div class="definition-box">
+                    <dl>
+                        <dt>Time Series</dt>
+                        <dd>A sequence of observations ordered in time, where each observation is a vector of features measured at a specific time point.</dd>
+
+                        <dt>Class Imbalance</dt>
+                        <dd>A situation where one class (minority) has significantly fewer samples than the other class (majority), typically with a ratio more extreme than 1:10.</dd>
+
+                        <dt>Oversampling</dt>
+                        <dd>A technique to balance class distribution by generating synthetic samples for the minority class.</dd>
+
+                        <dt>Temporal Dependency</dt>
+                        <dd>The relationship between observations at different time points, where the current state depends on previous states.</dd>
+
+                        <dt>Decision Boundary</dt>
+                        <dd>The hyperplane or surface that separates different classes in feature space. Samples near this boundary are hardest to classify.</dd>
+                    </dl>
+                </div>
+
+                <h3>1.4 When to Use T-SMOTE</h3>
+                <p>T-SMOTE is particularly effective when:</p>
+
+                <div class="note-box">
+                    <h4>✅ Ideal Use Cases</h4>
+                    <ul>
+                        <li>Your data is <strong>sequential</strong> (time series, sensor data, behavioral sequences)</li>
+                        <li>You have <strong>severe class imbalance</strong> (minority class &lt; 20% of total)</li>
+                        <li>The <strong>temporal evolution</strong> of patterns is important (not just final state)</li>
+                        <li>You have a <strong>pretrained classifier</strong> that can provide confidence scores</li>
+                        <li><strong>Transitional patterns</strong> matter (how normal becomes abnormal)</li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <h4>⚠️ Not Recommended When</h4>
+                    <ul>
+                        <li>Your data is <strong>static/tabular</strong> without temporal order → use standard SMOTE</li>
+                        <li>Classes are <strong>already balanced</strong> → no oversampling needed</li>
+                        <li>You have <strong>very short sequences</strong> (e.g., &lt;10 time steps) → limited room for subsequencing</li>
+                        <li><strong>Temporal order doesn't matter</strong> to the classification task</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 2: The Problem with Standard SMOTE -->
+            <div class="section" id="problem">
+                <h2><span class="icon">⚠️</span> 2. The Problem with Standard SMOTE</h2>
+
+                <h3>2.1 How Standard SMOTE Works</h3>
+                <p>SMOTE (Synthetic Minority Over-sampling Technique), introduced by Chawla et al. in 2002, is a foundational technique for handling imbalanced data in traditional machine learning.</p>
+
+                <h4>Mathematical Formulation</h4>
+                <p>For static feature vectors:</p>
+                <div class="math-box">
+X = [x₁, x₂, ..., xₙ] ∈ ℝⁿ,  y ∈ {0,1}
+                </div>
+
+                <p>SMOTE generates synthetic samples by linear interpolation:</p>
+                <div class="math-box">
+X_new = X_A + λ(X_B - X_A)
+
+where:
+- X_A: a minority sample
+- X_B: one of its k-nearest neighbors (also minority)
+- λ: random value ∈ [0,1]
+                </div>
+
+                <h4>Step-by-Step Process</h4>
+                <div class="algorithm-box">
+                    <h4>Standard SMOTE Algorithm</h4>
+                    <ol class="step-list">
+                        <li>Select a minority class sample X_A</li>
+                        <li>Find its k nearest neighbors (typically k=5) in feature space</li>
+                        <li>Randomly choose one neighbor X_B</li>
+                        <li>Generate random λ ∈ [0,1]</li>
+                        <li>Create synthetic sample: X_new = X_A + λ(X_B - X_A)</li>
+                        <li>Repeat until desired class balance is achieved</li>
+                    </ol>
+                </div>
+
+                <div class="example-box">
+                    <h4>📊 Concrete Example: Credit Scoring</h4>
+                    <p><strong>Sample A (defaulter):</strong></p>
+                    <table>
+                        <tr>
+                            <th>Age</th>
+                            <th>Income</th>
+                            <th>Credit Score</th>
+                        </tr>
+                        <tr>
+                            <td>35</td>
+                            <td>45000</td>
+                            <td>580</td>
+                        </tr>
+                    </table>
+
+                    <p><strong>Sample B (defaulter, nearest neighbor):</strong></p>
+                    <table>
+                        <tr>
+                            <th>Age</th>
+                            <th>Income</th>
+                            <th>Credit Score</th>
+                        </tr>
+                        <tr>
+                            <td>40</td>
+                            <td>50000</td>
+                            <td>600</td>
+                        </tr>
+                    </table>
+
+                    <p><strong>With λ = 0.6:</strong></p>
+                    <div class="math-box">
+New Sample = 0.6 × A + 0.4 × B
+Age = 0.6(35) + 0.4(40) = 37
+Income = 0.6(45000) + 0.4(50000) = 47000
+Credit Score = 0.6(580) + 0.4(600) = 596
+                    </div>
+                    <p>✅ <strong>This works perfectly</strong> because these features are independent and static.</p>
+                </div>
+
+                <h3>2.2 Why SMOTE Fails for Time Series</h3>
+
+                <div class="problem-box">
+                    <h4>🚫 Critical Failure Modes</h4>
+
+                    <h4>Problem 1: Temporal Order Destruction</h4>
+                    <p>When you flatten a time series into a feature vector, you lose the sequential structure:</p>
+                    <div class="math-box">
+Original: [frame₁, frame₂, frame₃, frame₄, frame₅]
+Flattened: [f₁₁, f₁₂, f₁₃, f₂₁, f₂₂, f₂₃, ..., f₅₃]
+                    </div>
+                    <p>SMOTE then treats f₁₁ (feature 1 at time 1) and f₃₂ (feature 2 at time 3) as if they're interchangeable—completely ignoring that they occur at different times.</p>
+
+                    <h4>Problem 2: Unrealistic Temporal Mixing</h4>
+                    <p>SMOTE might interpolate between samples at completely different temporal phases:</p>
+                    <ul>
+                        <li>Mixing the beginning of one gait cycle with the end of another</li>
+                        <li>Combining early-stage failure indicators with late-stage indicators</li>
+                        <li>Blending different phases of a heartbeat cycle</li>
+                    </ul>
+                    <p>Result: <strong>Physically impossible synthetic sequences</strong></p>
+
+                    <h4>Problem 3: Loss of Dynamics</h4>
+                    <p>Time series contain information in their dynamics—velocity, acceleration, trends. SMOTE interpolation destroys these:</p>
+                    <ul>
+                        <li>Smooth trends become jagged</li>
+                        <li>Periodic patterns get distorted</li>
+                        <li>Temporal correlations are broken</li>
+                    </ul>
+                </div>
+
+                <div class="example-box">
+                    <h4>🎭 Illustrative Example: Gait Analysis</h4>
+                    <p><strong>Sequence A (ASD gait):</strong> Complete gait cycle from heel strike to toe-off</p>
+                    <div class="visual-demo">
+                        <div class="sequence-row">
+                            <div class="label">Phase:</div>
+                            <div class="sequence-box">Heel Strike</div>
+                            <div class="sequence-box">Loading</div>
+                            <div class="sequence-box">Mid-stance</div>
+                            <div class="sequence-box">Push-off</div>
+                            <div class="sequence-box">Swing</div>
+                        </div>
+                    </div>
+
+                    <p><strong>Sequence B (ASD gait):</strong> Similar but different timing</p>
+                    <div class="visual-demo">
+                        <div class="sequence-row">
+                            <div class="label">Phase:</div>
+                            <div class="sequence-box">Loading</div>
+                            <div class="sequence-box">Mid-stance</div>
+                            <div class="sequence-box">Push-off</div>
+                            <div class="sequence-box">Swing</div>
+                            <div class="sequence-box">Heel Strike</div>
+                        </div>
+                    </div>
+
+                    <p><strong>What SMOTE produces:</strong> Random mixing of phases</p>
+                    <div class="visual-demo">
+                        <div class="sequence-row">
+                            <div class="label">Synthetic:</div>
+                            <div class="sequence-box" style="background: #ffcdd2; border-color: #f44336;">0.6×Heel + 0.4×Loading</div>
+                            <div class="sequence-box" style="background: #ffcdd2; border-color: #f44336;">0.6×Loading + 0.4×Mid</div>
+                            <div class="sequence-box" style="background: #ffcdd2; border-color: #f44336;">0.6×Mid + 0.4×Push</div>
+                            <div class="sequence-box" style="background: #ffcdd2; border-color: #f44336;">0.6×Push + 0.4×Swing</div>
+                            <div class="sequence-box" style="background: #ffcdd2; border-color: #f44336;">0.6×Swing + 0.4×Heel</div>
+                        </div>
+                    </div>
+                    <p>❌ <strong>This creates biomechanically impossible movement patterns!</strong></p>
+                </div>
+
+                <h3>2.3 Comparison: What Works vs. What Doesn't</h3>
+                <div class="comparison">
+                    <div class="comparison-item good">
+                        <h4>✅ SMOTE Works Great For:</h4>
+                        <ul>
+                            <li><strong>Tabular data:</strong> Customer demographics, financial ratios</li>
+                            <li><strong>Image features:</strong> Pixel values, color histograms</li>
+                            <li><strong>Static measurements:</strong> Lab test results, survey responses</li>
+                            <li><strong>Independent features:</strong> Where feature order doesn't matter</li>
+                        </ul>
+                        <p><strong>Why?</strong> These features don't have temporal dependencies</p>
+                    </div>
+                    <div class="comparison-item bad">
+                        <h4>❌ SMOTE Fails For:</h4>
+                        <ul>
+                            <li><strong>Time series:</strong> Sensor readings, physiological signals</li>
+                            <li><strong>Sequential data:</strong> Video frames, speech signals</li>
+                            <li><strong>Behavioral sequences:</strong> User actions, transaction patterns</li>
+                            <li><strong>Temporal patterns:</strong> Where order and dynamics are crucial</li>
+                        </ul>
+                        <p><strong>Why?</strong> Temporal dependencies get destroyed</p>
+                    </div>
+                </div>
+
+                <div class="related-work">
+                    <h4>📚 Historical Context</h4>
+                    <p>Several attempts have been made to extend SMOTE to time series:</p>
+                    <ul>
+                        <li><strong>Borderline-SMOTE:</strong> Focuses on samples near decision boundary, but still treats sequences as vectors</li>
+                        <li><strong>ADASYN:</strong> Adaptively generates samples based on density, but ignores temporal structure</li>
+                        <li><strong>TimeGAN:</strong> Uses GANs for time series generation, but computationally expensive and requires large datasets</li>
+                    </ul>
+                    <p><strong>T-SMOTE's advantage:</strong> Preserves temporal structure while being computationally efficient and requiring fewer samples.</p>
+                </div>
+            </div>
+
+            <!-- Section 3: Understanding Time-Series Structure -->
+            <div class="section" id="timeseries">
+                <h2><span class="icon">⏰</span> 3. Understanding Time-Series Structure</h2>
+
+                <h3>3.1 Mathematical Representation</h3>
+                <p>A time series is fundamentally different from static data because it contains ordered observations over time.</p>
+
+                <h4>Formal Definition</h4>
+                <div class="math-box">
+Xᵢ = [x¹ᵢ, x²ᵢ, x³ᵢ, ..., xᵀᵢ]
+
+where:
+- i: sample index
+- T: total number of time steps (sequence length)
+- xᵗᵢ ∈ ℝᵈ: feature vector at time t
+- d: number of features (dimensions)
+                </div>
+
+                <div class="note-box">
+                    <h4>📝 Understanding the Notation</h4>
+                    <p><strong>Subscript i:</strong> Identifies which time series (e.g., patient #5, sensor #12)</p>
+                    <p><strong>Superscript t:</strong> Identifies the time step within that series</p>
+                    <p><strong>Example:</strong> x³₅ means "features at time step 3 of time series #5"</p>
+                </div>
+
+                <h3>3.2 Anatomy of Time-Series Data</h3>
+
+                <div class="example-box">
+                    <h4>🚶 Concrete Example: Gait Analysis Data</h4>
+                    <p><strong>Setup:</strong> Motion capture of a person walking for 2 seconds at 30 FPS</p>
+                    <ul>
+                        <li><strong>T = 60</strong> time steps (frames)</li>
+                        <li><strong>d = 12</strong> features per frame (4 joints × 3 coordinates each)</li>
+                        <li><strong>Features:</strong> [hip_x, hip_y, hip_z, knee_x, knee_y, knee_z, ankle_x, ankle_y, ankle_z, foot_x, foot_y, foot_z]</li>
+                    </ul>
+
+                    <p><strong>Data structure:</strong></p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>hip_x</th>
+                                <th>hip_y</th>
+                                <th>hip_z</th>
+                                <th>...</th>
+                                <th>foot_z</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>t=1</td>
+                                <td>0.45</td>
+                                <td>0.92</td>
+                                <td>0.15</td>
+                                <td>...</td>
+                                <td>0.02</td>
+                            </tr>
+                            <tr>
+                                <td>t=2</td>
+                                <td>0.46</td>
+                                <td>0.93</td>
+                                <td>0.16</td>
+                                <td>...</td>
+                                <td>0.03</td>
+                            </tr>
+                            <tr>
+                                <td>...</td>
+                                <td>...</td>
+                                <td>...</td>
+                                <td>...</td>
+                                <td>...</td>
+                                <td>...</td>
+                            </tr>
+                            <tr>
+                                <td>t=60</td>
+                                <td>0.52</td>
+                                <td>0.89</td>
+                                <td>0.18</td>
+                                <td>...</td>
+                                <td>0.01</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p><strong>Shape:</strong> (60, 12) — a matrix where each row is one time step</p>
+                </div>
+
+                <h3>3.3 What Makes Time Series Special</h3>
+
+                <div class="why-box">
+                    <h3>🎯 Critical Properties of Time Series</h3>
+
+                    <h4>1. Temporal Order Matters</h4>
+                    <p>Frame 5 → Frame 6 → Frame 7 represents physical reality. Reversing or shuffling this order creates meaningless data.</p>
+
+                    <h4>2. Temporal Dependencies</h4>
+                    <p>Current values depend on past values:</p>
+                    <div class="math-box">
+x^t depends on x^(t-1), x^(t-2), ..., x^1
+                    </div>
+                    <p>Example: Your foot position at frame 10 is influenced by where it was at frame 9.</p>
+
+                    <h4>3. Patterns Evolve Over Time</h4>
+                    <p>The transition from normal to abnormal happens gradually:</p>
+                    <ul>
+                        <li>Frames 1-20: Normal walking</li>
+                        <li>Frames 21-40: Subtle asymmetry appears</li>
+                        <li>Frames 41-60: Clear ASD gait pattern</li>
+                    </ul>
+
+                    <h4>4. Dynamics Matter</h4>
+                    <p>Not just position, but velocity and acceleration:</p>
+                    <ul>
+                        <li><strong>Position:</strong> Where the joint is</li>
+                        <li><strong>Velocity:</strong> How fast it's moving (x^t - x^(t-1))</li>
+                        <li><strong>Acceleration:</strong> How velocity changes</li>
+                    </ul>
+                </div>
+
+                <h3>3.4 Challenges in Time-Series Classification</h3>
+
+                <div class="problem-box">
+                    <h4>🎯 Key Challenges</h4>
+
+                    <h4>Variable Length</h4>
+                    <p>Different sequences may have different lengths (some walks are longer than others). Solutions: padding, truncation, or subsequencing.</p>
+
+                    <h4>Temporal Misalignment</h4>
+                    <p>Similar patterns may occur at different time offsets. One person's gait cycle might start at frame 5, another's at frame 15.</p>
+
+                    <h4>High Dimensionality</h4>
+                    <p>With T=60 and d=12, you have 720 features. This creates the "curse of dimensionality" problem.</p>
+
+                    <h4>Class Imbalance</h4>
+                    <p>In medical/industrial applications, abnormal cases are rare. This is where T-SMOTE comes in!</p>
+                </div>
+
+                <h3>3.5 Why Standard Methods Fail</h3>
+
+                <div class="visual-demo">
+                    <h4>Visualization: What Happens When You Flatten Time Series</h4>
+
+                    <p><strong>Original time series (meaningful):</strong></p>
+                    <div class="sequence-row">
+                        <div class="label">Time →</div>
+                        <div class="sequence-box">Frame 1<br>[12 features]</div>
+                        <div class="sequence-box">Frame 2<br>[12 features]</div>
+                        <div class="sequence-box">Frame 3<br>[12 features]</div>
+                        <div class="sequence-box">...</div>
+                        <div class="sequence-box">Frame 60<br>[12 features]</div>
+                    </div>
+
+                    <p style="margin-top: 20px;"><strong>After flattening for SMOTE (order lost):</strong></p>
+                    <div class="math-box">
+[f₁₁, f₁₂, ..., f₁₁₂, f₂₁, f₂₂, ..., f₂₁₂, ..., f₆₀₁, ..., f₆₀₁₂]
+                    </div>
+                    <p>Now it's just a 720-dimensional vector. The model has no way to know that f₁₁ (hip_x at time 1) should be close to f₂₁ (hip_x at time 2).</p>
+                </div>
+
+                <div class="key-insight">
+                    <strong>The Core Insight:</strong> Time series are not just collections of features—they're trajectories through feature space over time. Any augmentation technique must preserve this trajectory structure.
+                </div>
+            </div>
+
+            <!-- Section 4: Leading Time Concept -->
+            <div class="section" id="leadingtime">
+                <h2><span class="icon">📏</span> 4. The Leading Time Concept</h2>
+
+                <p>The <strong>leading time</strong> is T-SMOTE's most innovative concept. It captures the idea that for classification tasks with temporal events (like failure, disease onset, or pattern occurrence), the most informative samples are those that capture the transition period—not just the final state.</p>
+
+                <h3>4.1 Mathematical Definition</h3>
+
+                <div class="definition-box">
+                    <dl>
+                        <dt>Leading Time (l)</dt>
+                        <dd>The temporal offset from the end of a sequence. It determines how far back in time we extract a subsequence.</dd>
+
+                        <dt>Subsequence with Leading Time l</dt>
+                        <dd>
+                            <div class="math-box">
+X⁽ˡ⁾ᵢ = [xᵢ^(T-l-w+1), xᵢ^(T-l-w+2), ..., xᵢ^(T-l)]
+
+where:
+- T: total sequence length
+- w: window size (subsequence length)
+- l: leading time (0, 1, 2, ..., L)</dd>
+                        </dd>
+                    </dl>
+                </div>
+
+                <h4>Intuitive Understanding</h4>
+                <p>Think of leading time as "rewinding" the sequence:</p>
+                <ul>
+                    <li><strong>l=0:</strong> The most recent w frames (ending at time T)</li>
+                    <li><strong>l=1:</strong> One step earlier (ending at time T-1)</li>
+                    <li><strong>l=2:</strong> Two steps earlier (ending at time T-2)</li>
+                    <li>And so on...</li>
+                </ul>
+
+                <div class="why-box">
+                    <h3>🤔 Why Do We Need Leading Time?</h3>
+
+                    <h4>The Problem with Just Using Final Frames</h4>
+                    <p>If you only look at the last window (l=0) for all positive samples:</p>
+                    <ul>
+                        <li>All samples are deep in the positive region</li>
+                        <li>Model doesn't learn the transition from negative → positive</li>
+                        <li>Can't detect early-stage patterns</li>
+                        <li>Poor performance on borderline cases</li>
+                    </ul>
+
+                    <h4>What Leading Time Achieves</h4>
+                    <p>By creating subsequences at different leading times:</p>
+                    <ul>
+                        <li><strong>l=0:</strong> Captures fully developed positive pattern (high confidence)</li>
+                        <li><strong>l=3:</strong> Captures mid-stage pattern (medium confidence)</li>
+                        <li><strong>l=7:</strong> Captures early-stage pattern (low confidence, near boundary)</li>
+                    </ul>
+                    <p>This gives the model examples of <strong>how patterns evolve</strong>, not just their final state.</p>
+                </div>
+
+                <h3>4.2 Visual Demonstration</h3>
+
+                <div class="visual-demo">
+                    <h4>Example: 10-Frame Sequence with Window Size w=5</h4>
+
+                    <p><strong>Complete original sequence:</strong></p>
+                    <div class="sequence-row">
+                        <div class="label">Frames:</div>
+                        <div class="sequence-box" style="opacity: 0.5;">1</div>
+                        <div class="sequence-box" style="opacity: 0.5;">2</div>
+                        <div class="sequence-box" style="opacity: 0.5;">3</div>
+                        <div class="sequence-box" style="opacity: 0.5;">4</div>
+                        <div class="sequence-box" style="opacity: 0.5;">5</div>
+                        <div class="sequence-box" style="opacity: 0.7;">6</div>
+                        <div class="sequence-box" style="opacity: 0.8;">7</div>
+                        <div class="sequence-box" style="opacity: 0.9;">8</div>
+                        <div class="sequence-box">9</div>
+                        <div class="sequence-box">10</div>
+                    </div>
+                    <p style="text-align: center; margin-top: 10px; font-style: italic;">Opacity represents pattern strength: darker = more obvious ASD pattern</p>
+
+                    <hr style="margin: 30px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+                    <p><strong>X⁽⁰⁾ (l=0): Last 5 frames [6,7,8,9,10]</strong></p>
+                    <div class="sequence-row">
+                        <div class="label">Extracted:</div>
+                        <div class="sequence-box" style="opacity: 0.3;">1-5</div>
+                        <div class="sequence-box" style="background: #4caf50; border-color: #2e7d32;">6</div>
+                        <div class="sequence-box" style="background: #4caf50; border-color: #2e7d32;">7</div>
+                        <div class="sequence-box" style="background: #4caf50; border-color: #2e7d32;">8</div>
+                        <div class="sequence-box" style="background: #4caf50; border-color: #2e7d32;">9</div>
+                        <div class="sequence-box" style="background: #4caf50; border-color: #2e7d32;">10</div>
+                    </div>
+                    <p><strong>Model confidence:</strong> s⁽⁰⁾ = 0.95 (very confident this is ASD)</p>
+                    <p><strong>Meaning:</strong> Clear, fully-developed ASD gait pattern</p>
+
+                    <hr style="margin: 30px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+                    <p><strong>X⁽¹⁾ (l=1): Frames [5,6,7,8,9]</strong></p>
+                    <div class="sequence-row">
+                        <div class="label">Extracted:</div>
+                        <div class="sequence-box" style="opacity: 0.3;">1-4</div>
+                        <div class="sequence-box" style="background: #ff9800; border-color: #e65100;">5</div>
+                        <div class="sequence-box" style="background: #ff9800; border-color: #e65100;">6</div>
+                        <div class="sequence-box" style="background: #ff9800; border-color: #e65100;">7</div>
+                        <div class="sequence-box" style="background: #ff9800; border-color: #e65100;">8</div>
+                        <div class="sequence-box" style="background: #ff9800; border-color: #e65100;">9</div>
+                        <div class="sequence-box" style="opacity: 0.3;">10</div>
+                    </div>
+                    <p><strong>Model confidence:</strong> s⁽¹⁾ = 0.78 (fairly confident)</p>
+                    <p><strong>Meaning:</strong> Pattern is developing but not fully established</p>
+
+                    <hr style="margin: 30px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+                    <p><strong>X⁽²⁾ (l=2): Frames [4,5,6,7,8]</strong></p>
+                    <div class="sequence-row">
+                        <div class="label">Extracted:</div>
+                        <div class="sequence-box" style="opacity: 0.3;">1-3</div>
+                        <div class="sequence-box" style="background: #ff5722; border-color: #bf360c;">4</div>
+                        <div class="sequence-box" style="background: #ff5722; border-color: #bf360c;">5</div>
+                        <div class="sequence-box" style="background: #ff5722; border-color: #bf360c;">6</div>
+                        <div class="sequence-box" style="background: #ff5722; border-color: #bf360c;">7</div>
+                        <div class="sequence-box" style="background: #ff5722; border-color: #bf360c;">8</div>
+                        <div class="sequence-box" style="opacity: 0.3;">9-10</div>
+                    </div>
+                    <p><strong>Model confidence:</strong> s⁽²⁾ = 0.54 (uncertain, borderline)</p>
+                    <p><strong>Meaning:</strong> Transition phase—could be ASD or normal</p>
+
+                    <hr style="margin: 30px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+                    <p><strong>X⁽³⁾ (l=3): Frames [3,4,5,6,7]</strong></p>
+                    <div class="sequence-row">
+                        <div class="label">Extracted:</div>
+                        <div class="sequence-box" style="opacity: 0.3;">1-2</div>
+                        <div class="sequence-box" style="background: #f44336; border-color: #b71c1c;">3</div>
+                        <div class="sequence-box" style="background: #f44336; border-color: #b71c1c;">4</div>
+                        <div class="sequence-box" style="background: #f44336; border-color: #b71c1c;">5</div>
+                        <div class="sequence-box" style="background: #f44336; border-color: #b71c1c;">6</div>
+                        <div class="sequence-box" style="background: #f44336; border-color: #b71c1c;">7</div>
+                        <div class="sequence-box" style="opacity: 0.3;">8-10</div>
+                    </div>
+                    <p><strong>Model confidence:</strong> s⁽³⁾ = 0.32 (looks more normal)</p>
+                    <p><strong>Meaning:</strong> Early stage, before pattern fully emerges</p>
+                </div>
+
+                <div class="key-insight">
+                    <strong>The Magic of Leading Time:</strong> By generating subsequences at different leading times, we create a temporal spectrum from "clearly positive" to "borderline" to "almost negative." This teaches the model to recognize patterns at all stages of development.
+                </div>
+
+                <h3>4.3 Calculating Leading Time Indices</h3>
+
+                <div class="algorithm-box">
+                    <h4>Step-by-Step Calculation</h4>
+                    <p><strong>Given:</strong></p>
+                    <ul>
+                        <li>Total sequence length: T = 10</li>
+                        <li>Window size: w = 5</li>
+                        <li>Leading time: l = 2</li>
+                    </ul>
+
+                    <p><strong>Calculate start and end indices:</strong></p>
+                    <div class="math-box">
+Start index: T - l - w + 1 = 10 - 2 - 5 + 1 = 4
+End index: T - l = 10 - 2 = 8
+
+Therefore: X⁽²⁾ = [x₄, x₅, x₆, x₇, x₈]
+                    </div>
+
+                    <p><strong>Verify:</strong></p>
+                    <ul>
+                        <li>Length = 8 - 4 + 1 = 5 ✓ (matches window size)</li>
+                        <li>Ends at T-l = 8 ✓ (two steps before the end)</li>
+                    </ul>
+                </div>
+
+                <h3>4.4 Choosing Maximum Leading Time (L)</h3>
+
+                <div class="note-box">
+                    <h4>📐 Practical Guidelines</h4>
+
+                    <h4>Maximum Possible Value</h4>
+                    <div class="math-box">
+L_max = T - w
+                    </div>
+                    <p>This ensures you don't try to extract a subsequence that starts before the beginning of the series.</p>
+
+                    <h4>Recommended Range</h4>
+                    <p>Typically, L is set to capture the meaningful transition period:</p>
+                    <ul>
+                        <li><strong>Short sequences (T &lt; 50):</strong> L = 3 to 5</li>
+                        <li><strong>Medium sequences (50 ≤ T ≤ 200):</strong> L = 5 to 10</li>
+                        <li><strong>Long sequences (T &gt; 200):</strong> L = 10 to 20</li>
+                    </ul>
+
+                    <h4>Domain Knowledge Matters</h4>
+                    <p>For gait analysis: If a gait cycle is ~30 frames and the transition takes ~15 frames, set L ≈ 15</p>
+                    <p>For equipment failure: If failure indicators appear 100 time steps before failure, set L ≈ 100</p>
+                </div>
+
+                <h3>4.5 Why Not Just Use the Entire Sequence?</h3>
+
+                <div class="comparison">
+                    <div class="comparison-item bad">
+                        <h4>❌ Using Full Sequence</h4>
+                        <ul>
+                            <li>Very long input to model</li>
+                            <li>Computational cost increases</li>
+                            <li>Early frames may be irrelevant noise</li>
+                            <li>Harder to learn what's important</li>
+                            <li>Doesn't focus on transition period</li>
+                        </ul>
+                    </div>
+                    <div class="comparison-item good">
+                        <h4>✅ Using Subsequences with Leading Time</h4>
+                        <ul>
+                            <li>Fixed-length windows (easier to batch)</li>
+                            <li>Computationally efficient</li>
+                            <li>Focuses on relevant time period</li>
+                            <li>Multiple training examples from one sequence</li>
+                            <li>Captures temporal evolution</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 5: Model Confidence Scores -->
+            <div class="section" id="confidence">
+                <h2><span class="icon">🎯</span> 5. Model Confidence Scores</h2>
+
+                <p>Model confidence scores are the bridge between the temporal subsequences and the synthetic sample generation. They tell us how "positive" each subsequence looks, which guides how we mix them.</p>
+
+                <h3>5.1 What is Model Confidence?</h3>
+
+                <div class="definition-box">
+                    <dl>
+                        <dt>Model Confidence Score (s⁽ˡ⁾ᵢ)</dt>
+                        <dd>The predicted probability that subsequence X⁽ˡ⁾ᵢ belongs to the positive (minority) class, as output by a trained classifier.</dd>
+
+                        <dt>Mathematical Form</dt>
+                        <dd>
+                            <div class="math-box">
+s⁽ˡ⁾ᵢ = f(X⁽ˡ⁾ᵢ) ∈ [0, 1]
+
+where:
+- f: trained classifier (LSTM, CNN, etc.)
+- s⁽ˡ⁾ᵢ: confidence score
+- Range: 0 (definitely negative) to 1 (definitely positive)
+                            </div>
+                        </dd>
+                    </dl>
+                </div>
+
+                <div class="why-box">
+                    <h3>🤔 Why Do We Need Confidence Scores?</h3>
+
+                    <h4>Problem: Not All Subsequences Are Equally Useful</h4>
+                    <p>Consider two subsequences from an ASD gait sequence:</p>
+                    <ul>
+                        <li><strong>X⁽⁰⁾:</strong> Last 5 frames — clearly shows ASD pattern</li>
+                        <li><strong>X⁽⁸⁾:</strong> Very early frames — looks completely normal</li>
+                    </ul>
+                    <p>If we mix these randomly with equal weight, we might generate samples that are too normal to be useful, or too mixed to be realistic.</p>
+
+                    <h4>Solution: Use Model's Own Assessment</h4>
+                    <p>The trained model can tell us:</p>
+                    <ul>
+                        <li>Which subsequences are "deep" in the positive region (high confidence)</li>
+                        <li>Which are borderline (medium confidence)</li>
+                        <li>Which look negative (low confidence)</li>
+                    </ul>
+                    <p>We use this information to intelligently guide the mixing process.</p>
+                </div>
+
+                <h3>5.2 Computing Confidence Scores</h3>
+
+                <h4>Step-by-Step Process</h4>
+                <div class="timeline">
+                    <div class="timeline-item" data-step="1">
+                        <h4>Train a Base Classifier</h4>
+                        <p>First, train an initial classifier on your imbalanced dataset (before applying T-SMOTE). This can be:</p>
+                        <ul>
+                            <li>LSTM (for sequential dependencies)</li>
+                            <li>1D CNN (for local patterns)</li>
+                            <li>Transformer (for long-range dependencies)</li>
+                            <li>Any model that outputs probabilities</li>
+                        </ul>
+                        <p><strong>Note:</strong> This doesn't need to be perfect—it just needs to provide reasonable confidence estimates.</p>
+                    </div>
+
+                    <div class="timeline-item" data-step="2">
+                        <h4>Generate Subsequences</h4>
+                        <p>For each positive sample in your dataset, create subsequences at different leading times:</p>
+                        <div class="math-box">
+X⁽⁰⁾ᵢ, X⁽¹⁾ᵢ, X⁽²⁾ᵢ, ..., X⁽ᴸ⁾ᵢ
+                        </div>
+                    </div>
+
+                    <div class="timeline-item" data-step="3">
+                        <h4>Run Through Classifier</h4>
+                        <p>Pass each subsequence through the trained model to get probability outputs:</p>
+                        <div class="code-box">
+                            <div class="code-title">Python Example</div>
+# Assuming you have a trained Keras/PyTorch model
+for l in range(L+1):
+    subseq = extract_subsequence(X_i, l, window_size)
+    confidence = model.predict_proba(subseq)[0, 1]  # Prob of positive class
+    scores[l] = confidence
+                        </div>
+                    </div>
+
+                    <div class="timeline-item" data-step="4">
+                        <h4>Store and Use</h4>
+                        <p>Store these confidence scores—you'll use them to:</p>
+                        <ul>
+                            <li>Determine mixing weights (via Beta distribution)</li>
+                            <li>Calculate synthetic sample confidences</li>
+                            <li>Filter unreliable samples (via weighted sampling)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>5.3 Interpreting Confidence Scores</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Score Range</th>
+                            <th>Interpretation</th>
+                            <th>Position in Feature Space</th>
+                            <th>Usefulness for Training</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0.9 - 1.0</td>
+                            <td>Very high confidence positive</td>
+                            <td>Deep in positive region</td>
+                            <td>Good for establishing class center</td>
+                        </tr>
+                        <tr>
+                            <td>0.7 - 0.9</td>
+                            <td>Confident positive</td>
+                            <td>Solidly in positive region</td>
+                            <td>Most useful for training</td>
+                        </tr>
+                        <tr>
+                            <td>0.5 - 0.7</td>
+                            <td>Likely positive</td>
+                            <td>Approaching decision boundary</td>
+                            <td>Critical for learning boundaries</td>
+                        </tr>
+                        <tr>
+                            <td>0.3 - 0.5</td>
+                            <td>Uncertain/borderline</td>
+                            <td>Near or on decision boundary</td>
+                            <td>Handle carefully—may be mislabeled</td>
+                        </tr>
+                        <tr>
+                            <td>0.0 - 0.3</td>
+                            <td>Looks negative</td>
+                            <td>In negative region</td>
+                            <td>Likely mislabeled or very early stage</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>5.4 The Confidence Progression Pattern</h3>
+
+                <div class="example-box">
+                    <h4>📊 Typical Pattern for an ASD Gait Sequence</h4>
+                    <p><strong>Sequence Length:</strong> T = 60 frames, <strong>Window:</strong> w = 20 frames</p>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Leading Time (l)</th>
+                                <th>Frames Used</th>
+                                <th>Confidence (s⁽ˡ⁾)</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>0</td>
+                                <td>[41-60]</td>
+                                <td>0.94</td>
+                                <td>Clear ASD pattern established</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>[36-55]</td>
+                                <td>0.88</td>
+                                <td>Pattern visible but less pronounced</td>
+                            </tr>
+                            <tr>
+                                <td>10</td>
+                                <td>[31-50]</td>
+                                <td>0.76</td>
+                                <td>Transitional phase beginning</td>
+                            </tr>
+                            <tr>
+                                <td>15</td>
+                                <td>[26-45]</td>
+                                <td>0.58</td>
+                                <td>Subtle abnormalities emerging</td>
+                            </tr>
+                            <tr>
+                                <td>20</td>
+                                <td>[21-40]</td>
+                                <td>0.42</td>
+                                <td>Mostly normal with hints</td>
+                            </tr>
+                            <tr>
+                                <td>25</td>
+                                <td>[16-35]</td>
+                                <td>0.31</td>
+                                <td>Appears normal</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p><strong>Key Observation:</strong> Confidence scores decrease as we go back in time, showing the gradual evolution from normal to ASD gait.</p>
+                </div>
+
+                <div class="key-insight">
+                    <strong>Why This Matters:</strong> The confidence scores encode the model's understanding of how patterns develop over time. By using these scores to guide synthesis, we ensure synthetic samples respect the natural progression of the pattern.
+                </div>
+
+                <h3>5.5 Edge Cases and Considerations</h3>
+
+                <div class="warning-box">
+                    <h4>⚠️ Common Pitfalls</h4>
+
+                    <h4>1. Poor Base Classifier</h4>
+                    <p><strong>Problem:</strong> If your initial classifier is terrible (random guessing), confidence scores will be meaningless.</p>
+                    <p><strong>Solution:</strong> Ensure your base classifier achieves at least moderate performance (e.g., AUC &gt; 0.6) before using T-SMOTE.</p>
+
+                    <h4>2. All High Confidences</h4>
+                    <p><strong>Problem:</strong> If all subsequences have confidence &gt; 0.9, you're not capturing the transition.</p>
+                    <p><strong>Solution:</strong> Increase maximum leading time L to go further back in time.</p>
+
+                    <h4>3. All Low Confidences</h4>
+                    <p><strong>Problem:</strong> If all scores are &lt; 0.5, the sample might be mislabeled.</p>
+                    <p><strong>Solution:</strong> Review labels or exclude this sample from augmentation.</p>
+
+                    <h4>4. Non-Monotonic Progression</h4>
+                    <p><strong>Problem:</strong> Sometimes scores don't decrease smoothly (e.g., s⁽³⁾ &gt; s⁽¹⁾).</p>
+                    <p><strong>Solution:</strong> This is normal due to noise. T-SMOTE is robust to small fluctuations.</p>
+                </div>
+
+                <div class="note-box">
+                    <h4>💡 Pro Tip: Warm-Start Strategy</h4>
+                    <p>If your initial dataset is very imbalanced (e.g., 1:100), your base classifier might struggle. Try this approach:</p>
+                    <ol>
+                        <li>Apply simple oversampling (duplication) to get to 1:10 ratio</li>
+                        <li>Train a base classifier on this</li>
+                        <li>Use this classifier to compute T-SMOTE confidence scores</li>
+                        <li>Apply T-SMOTE to get to 1:1 ratio</li>
+                        <li>Train final classifier on T-SMOTE augmented data</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Section 6: Beta Distribution & Mixing Weights -->
+            <div class="section" id="beta">
+                <h2><span class="icon">📊</span> 6. Beta Distribution & Mixing Weights</h2>
+
+                <p>The Beta distribution is the mathematical heart of T-SMOTE. It determines how to mix two temporal neighbors based on their confidence scores, ensuring synthetic samples are both diverse and realistic.</p>
+
+                <h3>6.1 What is the Beta Distribution?</h3>
+
+                <div class="definition-box">
+                    <dl>
+                        <dt>Beta Distribution</dt>
+                        <dd>A continuous probability distribution defined on the interval [0, 1], parameterized by two shape parameters α and β (often denoted as a and b).</dd>
+
+                        <dt>Mathematical Form</dt>
+                        <dd>
+                            <div class="math-box">
+X ~ Beta(a, b)
+
+Probability Density Function:
+f(x; a, b) = (x^(a-1) * (1-x)^(b-1)) / B(a, b)
+
+where B(a,b) is the Beta function (normalization constant)
+
+Mean: E[X] = a / (a + b)
+Variance: Var[X] = (a*b) / ((a+b)²(a+b+1))
+                            </div>
+                        </dd>
+                    </dl>
+                </div>
+
+                <h3>6.2 Why Beta Distribution?</h3>
+
+                <div class="why-box">
+                    <h3>🎯 Perfect Properties for Our Task</h3>
+
+                    <h4>1. Bounded to [0,1]</h4>
+                    <p>For interpolation X_new = α·X⁽ˡ⁾ + (1-α)·X⁽ˡ⁺¹⁾, we need α ∈ [0,1]. Beta naturally lives in this range.</p>
+
+                    <h4>2. Flexible Shapes</h4>
+                    <p>By varying parameters a and b, Beta can be:</p>
+                    <ul>
+                        <li><strong>Uniform:</strong> Beta(1,1) → equal probability for all α</li>
+                        <li><strong>Left-skewed:</strong> Beta(0.3, 0.8) → favors small α</li>
+                        <li><strong>Right-skewed:</strong> Beta(0.8, 0.3) → favors large α</li>
+                        <li><strong>Bell-shaped:</strong> Beta(5, 5) → concentrated around 0.5</li>
+                    </ul>
+
+                    <h4>3. Natural Interpretation</h4>
+                    <p>When a = s⁽ˡ⁾ and b = s⁽ˡ⁺¹⁾:</p>
+                    <ul>
+                        <li>If s⁽ˡ⁾ &gt; s⁽ˡ⁺¹⁾: α tends toward 1 → more weight on recent (confident) subsequence</li>
+                        <li>If s⁽ˡ⁾ &lt; s⁽ˡ⁺¹⁾: α tends toward 0 → more weight on earlier subsequence</li>
+                        <li>If s⁽ˡ⁾ ≈ s⁽ˡ⁺¹⁾: α around 0.5 → balanced mixing</li>
+                    </ul>
+
+                    <h4>4. Incorporates Model Knowledge</h4>
+                    <p>By using confidence scores as parameters, we let the model's own assessment guide the augmentation process.</p>
+                </div>
+
+                <h3>6.3 T-SMOTE's Use of Beta</h3>
+
+                <h4>The Formula</h4>
+                <div class="math-box">
+α ~ Beta(s⁽ˡ⁾ᵢ, s⁽ˡ⁺¹⁾ᵢ)
+
+where:
+- s⁽ˡ⁾ᵢ: confidence of subsequence at leading time l
+- s⁽ˡ⁺¹⁾ᵢ: confidence of subsequence at leading time l+1
+- α: sampled mixing weight
+                </div>
+
+                <h4>Intuitive Interpretation</h4>
+                <p>Think of a and b as "votes" for which subsequence to favor:</p>
+                <ul>
+                    <li><strong>a = s⁽ˡ⁾ = 0.9:</strong> 9 votes for X⁽ˡ⁾ (recent, confident)</li>
+                    <li><strong>b = s⁽ˡ⁺¹⁾ = 0.4:</strong> 4 votes for X⁽ˡ⁺¹⁾ (earlier, less confident)</li>
+                    <li><strong>Expected α:</strong> 0.9/(0.9+0.4) ≈ 0.69 → leans toward recent one</li>
+                </ul>
+
+                <h3>6.4 Visual Examples</h3>
+
+                <div class="visual-demo">
+                    <h4>Case 1: High vs Low Confidence</h4>
+                    <p><strong>Parameters:</strong> Beta(0.90, 0.30)</p>
+                    <ul>
+                        <li><strong>Mean:</strong> 0.90/(0.90+0.30) = 0.75</li>
+                        <li><strong>Shape:</strong> Strongly right-skewed</li>
+                        <li><strong>Interpretation:</strong> Most samples will have α around 0.7-0.8, heavily favoring X⁽ˡ⁾</li>
+                    </ul>
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <p><strong>Distribution Shape:</strong></p>
+                        <pre style="font-family: monospace; font-size: 0.9em;">
+Probability
+    ▲
+ 1.5│                    ╱█
+    │                   ╱ █
+ 1.0│                  ╱  █
+    │                 ╱   █
+ 0.5│         ▁▁▁▁▁▁▁╱    █
+    │  ▁▁▁▁▁▁▁             █
+ 0.0└────────────────────────────▶ α
+    0   0.2  0.4  0.6  0.8  1.0
+        </pre>
+                        <p><strong>Result:</strong> Synthetic samples will be very similar to X⁽⁰⁾ (recent, confident)</p>
+                    </div>
+
+                    <hr style="margin: 30px 0; border: none; border-top: 2px solid #e0e0e0;">
+
+                    <h4>Case 2: Similar Confidences</h4>
+                    <p><strong>Parameters:</strong> Beta(0.65, 0.60)</p>
+                    <ul>
+                        <li><strong>Mean:</strong> 0.65/(0.65+0.60) = 0.52</li>
+                        <li><strong>Shape:</strong> Roughly symmetric</li>
+                        <li><strong>Interpretation:</strong> Balanced mixing with slight favor to X⁽ˡ⁾</li>
+                    </ul>
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <p><strong>Distribution Shape:</strong></p>
+                        <pre style="font-family: monospace; font-size: 0.9em;">
+Probability
+    ▲
+ 1.5│         ╱█╲
+    │        ╱ █ ╲
+ 1.0│       ╱  █  ╲
+    │      ╱   █   ╲
+ 0.5│  ▁▁▁╱    █    ╲▁▁▁
+    │ ▁▁▁      █      ▁▁▁
+ 0.0└────────────────────────────▶ α
+    0   0.2  0.4  0.6  0.8  1.0
+        </pre>
+                        <p><strong>Result:</strong> Diverse synthetic samples spanning both subsequences</p>
+                    </div>
+                </div>
+
+                <h3>6.5 Numerical Example</h3>
+
+                <div class="example-box">
+                    <h4>🔢 Step-by-Step Calculation</h4>
+
+                    <p><strong>Setup:</strong></p>
+                    <ul>
+                        <li>Subsequence X⁽¹⁾: confidence s⁽¹⁾ = 0.84</li>
+                        <li>Subsequence X⁽²⁾: confidence s⁽²⁾ = 0.58</li>
+                    </ul>
+
+                    <div class="timeline">
+                        <div class="timeline-item" data-step="1">
+                            <h4>Set Beta Parameters</h4>
+                            <div class="math-box">
+a = s⁽¹⁾ = 0.84
+b = s⁽²⁾ = 0.58
+                            </div>
+                        </div>
+
+                        <div class="timeline-item" data-step="2">
+                            <h4>Calculate Expected Value</h4>
+                            <div class="math-box">
+E[α] = a/(a+b) = 0.84/(0.84+0.58) = 0.84/1.42 ≈ 0.592
+                            </div>
+                            <p><strong>Interpretation:</strong> On average, synthetic samples will be 59.2% from X⁽¹⁾ and 40.8% from X⁽²⁾</p>
+                        </div>
+
+                        <div class="timeline-item" data-step="3">
+                            <h4>Sample α (in practice)</h4>
+                            <div class="code-box">
+                                <div class="code-title">Python Implementation</div>
+import numpy as np
+
+# Sample mixing weight
+alpha = np.random.beta(0.84, 0.58)
+# Example output: alpha = 0.627
+
+print(f"Sampled α: {alpha:.3f}")
+# This specific sample: 62.7% from X⁽¹⁾, 37.3% from X⁽²⁾
+                            </div>
+                        </div>
+
+                        <div class="timeline-item" data-step="4">
+                            <h4>Create Synthetic Sample</h4>
+                            <div class="math-box">
+X_new = 0.627 × X⁽¹⁾ + 0.373 × X⁽²⁾
+                            </div>
+                            <p>This preserves temporal structure while creating a slightly earlier version of the pattern.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>6.6 Why Not Simpler Alternatives?</h3>
+
+                <div class="comparison">
+                    <div class="comparison-item bad">
+                        <h4>❌ Uniform Random (α ~ U[0,1])</h4>
+                        <ul>
+                            <li>Ignores confidence information</li>
+                            <li>Treats all mixing equally likely</li>
+                            <li>Could create unrealistic samples</li>
+                            <li>No model guidance</li>
+                        </ul>
+                        <p><strong>Example:</strong> Might mix 90% confident with 30% confident subsequence using α=0.1, creating mostly negative-looking sample</p>
+                    </div>
+                    <div class="comparison-item good">
+                        <h4>✅ Beta Distribution</h4>
+                        <ul>
+                            <li>Incorporates confidence</li>
+                            <li>Adaptively weights mixing</li>
+                            <li>Creates realistic samples</li>
+                            <li>Model-guided augmentation</li>
+                        </ul>
+                        <p><strong>Same scenario:</strong> Beta(0.9, 0.3) naturally produces α around 0.7-0.8, keeping samples positive</p>
+                    </div>
+                </div>
+
+                <div class="comparison">
+                    <div class="comparison-item bad">
+                        <h4>❌ Fixed α (e.g., α=0.5)</h4>
+                        <ul>
+                            <li>No diversity</li>
+                            <li>All synthetics are identical</li>
+                            <li>Overfitting risk</li>
+                            <li>Doesn't explore space</li>
+                        </ul>
+                    </div>
+                    <div class="comparison-item good">
+                        <h4>✅ Sampled α from Beta</h4>
+                        <ul>
+                            <li>Natural diversity</li>
+                            <li>Different synthetics each time</li>
+                            <li>Better generalization</li>
+                            <li>Explores around mean</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="key-insight">
+                    <strong>The Brilliance of Beta:</strong> It automatically adjusts the mixing strategy based on how confident the model is about each subsequence. High confidence differences → skewed mixing (favor confident one). Similar confidences → balanced mixing (explore between them).
+                </div>
+            </div>
+
+            <!-- Section 7: Synthesizing New Samples -->
+            <div class="section" id="synthesis">
+                <h2><span class="icon">⚗️</span> 7. Synthesizing New Samples</h2>
+
+                <p>Now we bring everything together: temporal subsequences, confidence scores, and Beta-sampled mixing weights combine to create synthetic time-series samples that are both temporally coherent and strategically positioned in feature space.</p>
+
+                <h3>7.1 The Core Synthesis Formula</h3>
+
+                <div class="math-box">
+X_new = α · X⁽ˡ⁾ᵢ + (1-α) · X⁽ˡ⁺¹⁾ᵢ
+
+where:
+- X⁽ˡ⁾ᵢ, X⁽ˡ⁺¹⁾ᵢ: two consecutive temporal subsequences
+- α ~ Beta(s⁽ˡ⁾ᵢ, s⁽ˡ⁺¹⁾ᵢ): mixing weight
+- X_new: synthetic subsequence (w × d matrix)
+
+This operation is performed ELEMENT-WISE on all time steps and features.
+                </div>
+
+                <div class="note-box">
+                    <h4>📐 Element-Wise Operation</h4>
+                    <p>The interpolation happens for every single value in the matrices:</p>
+                    <div class="math-box">
+For each time step t ∈ [1, w] and feature f ∈ [1, d]:
+
+X_new[t, f] = α · X⁽ˡ⁾[t, f] + (1-α) · X⁽ˡ⁺¹⁾[t, f]
+                    </div>
+                    <p>This ensures temporal coherence—we're not mixing different time steps!</p>
+                </div>
+
+                <h3>7.2 Complete Example with Real Numbers</h3>
+
+                <div class="example-box">
+                    <h4>🔢 Full Worked Example</h4>
+
+                    <p><strong>Scenario:</strong> 3-feature gait data, window size w=4</p>
+
+                    <p><strong>Step 1: Two Temporal Subsequences</strong></p>
+                    <p>X⁽⁰⁾ (recent, l=0, confidence = 0.84):</p>
+                    <table style="font-family: monospace;">
+                        <tr><th>Time</th><th>hip_x</th><th>knee_x</th><th>ankle_x</th></tr>
+                        <tr><td>1</td><td>1.6</td><td>0.9</td><td>2.5</td></tr>
+                        <tr><td>2</td><td>1.8</td><td>1.0</td><td>2.7</td></tr>
+                        <tr><td>3</td><td>2.0</td><td>1.1</td><td>2.9</td></tr>
+                        <tr><td>4</td><td>2.2</td><td>1.3</td><td>3.0</td></tr>
+                    </table>
+
+                    <p style="margin-top: 20px;">X⁽¹⁾ (earlier, l=1, confidence = 0.58):</p>
+                    <table style="font-family: monospace;">
+                        <tr><th>Time</th><th>hip_x</th><th>knee_x</th><th>ankle_x</th></tr>
+                        <tr><td>1</td><td>1.3</td><td>0.8</td><td>2.3</td></tr>
+                        <tr><td>2</td><td>1.6</td><td>0.9</td><td>2.5</td></tr>
+                        <tr><td>3</td><td>1.8</td><td>1.0</td><td>2.7</td></tr>
+                        <tr><td>4</td><td>2.0</td><td>1.1</td><td>2.9</td></tr>
+                    </table>
+
+                    <p><strong>Step 2: Sample Mixing Weight</strong></p>
+                    <div class="math-box">
+α ~ Beta(0.84, 0.58)
+Let's say we sample: α = 0.59
+Therefore: (1-α) = 0.41
+                    </div>
+
+                    <p><strong>Step 3: Compute Synthetic Sample (Element-by-Element)</strong></p>
+
+                    <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0; font-family: monospace; font-size: 0.9em;">
+                        <p><strong>Time step 1:</strong></p>
+                        <p>hip_x:   0.59×1.6 + 0.41×1.3 = 0.944 + 0.533 = <strong>1.477</strong></p>
+                        <p>knee_x:  0.59×0.9 + 0.41×0.8 = 0.531 + 0.328 = <strong>0.859</strong></p>
+                        <p>ankle_x: 0.59×2.5 + 0.41×2.3 = 1.475 + 0.943 = <strong>2.418</strong></p>
+
+                        <p style="margin-top: 15px;"><strong>Time step 2:</strong></p>
+                        <p>hip_x:   0.59×1.8 + 0.41×1.6 = 1.062 + 0.656 = <strong>1.718</strong></p>
+                        <p>knee_x:  0.59×1.0 + 0.41×0.9 = 0.590 + 0.369 = <strong>0.959</strong></p>
+                        <p>ankle_x: 0.59×2.7 + 0.41×2.5 = 1.593 + 1.025 = <strong>2.618</strong></p>
+
+                        <p style="margin-top: 15px;"><strong>Time step 3:</strong></p>
+                        <p>hip_x:   0.59×2.0 + 0.41×1.8 = 1.180 + 0.738 = <strong>1.918</strong></p>
+                        <p>knee_x:  0.59×1.1 + 0.41×1.0 = 0.649 + 0.410 = <strong>1.059</strong></p>
+                        <p>ankle_x: 0.59×2.9 + 0.41×2.7 = 1.711 + 1.107 = <strong>2.818</strong></p>
+
+                        <p style="margin-top: 15px;"><strong>Time step 4:</strong></p>
+                        <p>hip_x:   0.59×2.2 + 0.41×2.0 = 1.298 + 0.820 = <strong>2.118</strong></p>
+                        <p>knee_x:  0.59×1.3 + 0.41×1.1 = 0.767 + 0.451 = <strong>1.218</strong></p>
+                        <p>ankle_x: 0.59×3.0 + 0.41×2.9 = 1.770 + 1.189 = <strong>2.959</strong></p>
+                    </div>
+
+                    <p><strong>Step 4: Final Synthetic Sample (X_new)</strong></p>
+                    <table style="font-family: monospace; background: #e8f5e9;">
+                        <tr><th>Time</th><th>hip_x</th><th>knee_x</th><th>ankle_x</th></tr>
+                        <tr><td>1</td><td>1.477</td><td>0.859</td><td>2.418</td></tr>
+                        <tr><td>2</td><td>1.718</td><td>0.959</td><td>2.618</td></tr>
+                        <tr><td>3</td><td>1.918</td><td>1.059</td><td>2.818</td></tr>
+                        <tr><td>4</td><td>2.118</td><td>1.218</td><td>2.959</td></tr>
+                    </table>
+
+                    <p style="margin-top: 15px;"><strong>✅ Verification:</strong></p>
+                    <ul>
+                        <li>All values lie between X⁽⁰⁾ and X⁽¹⁾ ✓</li>
+                        <li>Temporal progression is smooth ✓</li>
+                        <li>Closer to X⁽⁰⁾ (since α=0.59) ✓</li>
+                        <li>Physically plausible joint positions ✓</li>
+                    </ul>
+                </div>
+
+                <h3>7.3 Synthetic Label Confidence</h3>
+
+                <p>Along with the synthetic sequence, we also compute its expected confidence:</p>
+                <div class="math-box">
+s_new = α · s⁽ˡ⁾ᵢ + (1-α) · s⁽ˡ⁺¹⁾ᵢ
+                </div>
+
+                <div class="example-box">
+                    <h4>Continuing Our Example:</h4>
+                    <div class="math-box">
+s_new = 0.59 × 0.84 + 0.41 × 0.58
+      = 0.4956 + 0.2378
+      = 0.7334
+                    </div>
+                    <p><strong>Interpretation:</strong> The synthetic sample is expected to have ~73% confidence of being ASD—still positive, but closer to the decision boundary than X⁽⁰⁾.</p>
+                </div>
+
+                <h3>7.4 Why This Works: The Geometry</h3>
+
+                <div class="visual-demo">
+                    <h4>Geometric Interpretation in Feature Space</h4>
+                    <p>Imagine plotting confidence scores along a temporal axis:</p>
+                    <pre style="font-family: monospace; background: #f5f5f5; padding: 15px; border-radius: 8px;">
+Confidence
+    1.0│                         ● X⁽⁰⁾ (0.84)
+       │                        ╱
+    0.8│                    ★  ← X_new (0.73)
+       │                   ╱
+    0.6│              ● X⁽¹⁾ (0.58)
+       │             ╱
+    0.4│        ● X⁽²⁾
+       │       ╱
+    0.2│  ● X⁽³⁾
+       │
+    0.0└─────────────────────────────────▶ Time
+       earlier                       recent
+    </pre>
+                    <p><strong>Key Points:</strong></p>
+                    <ul>
+                        <li>Synthetic sample (★

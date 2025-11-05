@@ -1,7 +1,6 @@
 # Base Image
 FROM  python:3.9
 
-
 # WOrking Directory
 WORKDIR /app
 
