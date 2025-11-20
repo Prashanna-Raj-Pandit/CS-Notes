@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Complete Guide to Deep Learning Reproducibility</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-elevated: #020617;
+      --bg-code: #020617;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.15);
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --border-subtle: #1f2937;
+      --code-border: #1e293b;
+      --pill-bg: #111827;
+      --pill-border: #1f2937;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, #020617 45%, #020617 100%);
+      color: var(--text-main);
+      line-height: 1.7;
+    }
+
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 16px 48px;
+    }
+
+    header {
+      padding: 24px 24px 20px;
+      border-radius: 16px;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
+                  radial-gradient(circle at top right, rgba(96, 165, 250, 0.16), transparent 55%),
+                  var(--bg-elevated);
+      border: 1px solid rgba(148, 163, 184, 0.13);
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.9),
+        0 18px 60px rgba(15, 23, 42, 0.9);
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 120% -10%, rgba(59, 130, 246, 0.23), transparent 55%);
+      mix-blend-mode: screen;
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .header-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 2.1rem;
+      letter-spacing: 0.02em;
+      color: #f9fafb;
+    }
+
+    .subtitle {
+      margin: 0 0 14px;
+      font-size: 0.98rem;
+      color: var(--text-muted);
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: #9ca3af;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--pill-border);
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(6px);
+      white-space: nowrap;
+    }
+
+    .pill strong {
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+    }
+
+    main {
+      background: linear-gradient(to bottom right, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.99));
+      border-radius: 18px;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.9),
+        0 18px 60px rgba(15, 23, 42, 0.95);
+      padding: 24px 22px 30px;
+    }
+
+    @media (max-width: 720px) {
+      main {
+        padding: 18px 14px 24px;
+      }
+    }
+
+    h2 {
+      margin-top: 28px;
+      margin-bottom: 10px;
+      font-size: 1.35rem;
+      border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+      padding-bottom: 4px;
+      color: #e5e7eb;
+    }
+
+    h3 {
+      margin-top: 20px;
+      margin-bottom: 6px;
+      font-size: 1.05rem;
+      color: #e5e7eb;
+    }
+
+    p {
+      margin: 6px 0 8px;
+    }
+
+    ul, ol {
+      margin: 6px 0 10px 1.2rem;
+      padding-left: 0.2rem;
+    }
+
+    li {
+      margin: 3px 0;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid rgba(31, 41, 55, 0.9);
+      margin: 18px 0;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      background: rgba(15, 23, 42, 0.9);
+      padding: 1px 4px;
+      border-radius: 4px;
+      border: 1px solid rgba(30, 64, 175, 0.65);
+      color: #e5e7eb;
+    }
+
+    pre {
+      background: radial-gradient(circle at top, rgba(8, 47, 73, 0.9), var(--bg-code));
+      border-radius: 12px;
+      padding: 14px 14px 14px 14px;
+      border: 1px solid var(--code-border);
+      overflow-x: auto;
+      font-size: 0.84rem;
+      line-height: 1.55;
+      margin: 10px 0 14px;
+      position: relative;
+    }
+
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #e5e7eb;
+      white-space: pre;
+    }
+
+    .toc {
+      border-radius: 12px;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 60%),
+                  rgba(15, 23, 42, 0.98);
+      padding: 12px 14px 10px;
+      margin-bottom: 12px;
+    }
+
+    .toc-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #e5e7eb;
+    }
+
+    .toc-title span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .toc ol {
+      margin: 4px 0 0 1.2rem;
+      font-size: 0.9rem;
+    }
+
+    .toc a {
+      color: #cbd5f5;
+    }
+
+    .toc a:hover {
+      color: #f9fafb;
+      text-decoration: underline;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 8px 0 12px;
+      font-size: 0.9rem;
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.98));
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(31, 41, 55, 0.95);
+    }
+
+    thead {
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+      text-align: left;
+    }
+
+    th {
+      font-weight: 600;
+      color: #e5e7eb;
+      border-bottom: 1px solid rgba(55, 65, 81, 0.9);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(17, 24, 39, 0.9);
+    }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: rgba(15, 23, 42, 0.96);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .note {
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+      margin: 8px 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .inline-em {
+      font-style: italic;
+      color: var(--text-muted);
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      border-top: 1px dashed rgba(31, 41, 55, 0.9);
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="header-inner">
+        <h1>Complete Guide to Deep Learning Reproducibility</h1>
+        <p class="subtitle">
+          From randomness to determinism in TensorFlow — seeds, GPUs, and production-ready workflows.
+        </p>
+        <div class="meta-row">
+          <div class="pill">
+            <div class="pill-dot"></div>
+            <span><strong>Focus:</strong> TensorFlow, Seeds &amp; Determinism</span>
+          </div>
+          <div class="pill">
+            <span><strong>Audience:</strong> Deep Learning Practitioners &amp; Researchers</span>
+          </div>
+          <div class="pill">
+            <span>🎯 <strong>Goal:</strong> Same results, every run</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <nav class="toc">
+        <div class="toc-title">
+          Table of Contents
+          <span>Jump to any section</span>
+        </div>
+        <ol>
+          <li><a href="#what-is-reproducibility">What is Reproducibility?</a></li>
+          <li><a href="#why-reproducibility-matters">Why Reproducibility Matters</a></li>
+          <li><a href="#what-happens-without-reproducibility">What Happens Without Reproducibility</a></li>
+          <li><a href="#sources-of-randomness">Sources of Randomness in Deep Learning</a></li>
+          <li><a href="#how-to-make-tensorflow-reproducible">How to Make TensorFlow Reproducible</a></li>
+          <li><a href="#complete-implementation-guide">Complete Implementation Guide</a></li>
+          <li><a href="#trade-offs">Trade-offs and Considerations</a></li>
+          <li><a href="#best-practices">Best Practices</a></li>
+        </ol>
+      </nav>
+
+      <hr />
+
+      <section id="what-is-reproducibility">
+        <h2>What is Reproducibility?</h2>
+        <p><strong>Reproducibility</strong> means that if you run your code multiple times with the same data and settings, you get <strong>exactly the same results</strong> every time.</p>
+
+        <h3>Example:</h3>
+        <pre><code>Run 1: Accuracy = 0.8542, Loss = 0.3241
+Run 2: Accuracy = 0.8542, Loss = 0.3241  ✓ Reproducible
+Run 3: Accuracy = 0.8542, Loss = 0.3241  ✓ Reproducible</code></pre>
+
+        <h3>Without Reproducibility:</h3>
+        <pre><code>Run 1: Accuracy = 0.8542, Loss = 0.3241
+Run 2: Accuracy = 0.8301, Loss = 0.3689  ✗ Different results
+Run 3: Accuracy = 0.8723, Loss = 0.2987  ✗ Different results</code></pre>
+      </section>
+
+      <hr />
+
+      <section id="why-reproducibility-matters">
+        <h2>Why Reproducibility Matters</h2>
+
+        <h3>1. <strong>Scientific Validity</strong> 🔬</h3>
+        <ul>
+          <li><strong>Problem</strong>: If results change every time, how do you know what's real?</li>
+          <li><strong>Impact</strong>: Your findings cannot be trusted or verified</li>
+          <li><strong>Example</strong>: You report 85% accuracy in your paper, but reviewers get 78% when they try it</li>
+        </ul>
+
+        <h3>2. <strong>Debugging and Development</strong> 🐛</h3>
+        <ul>
+          <li><strong>Problem</strong>: Can't tell if a change improved your model or if it's just random variation</li>
+          <li><strong>Example</strong>:</li>
+        </ul>
+        <pre><code>Change 1: Accuracy went from 0.82 → 0.85 (good!)
+Change 2: Accuracy went from 0.85 → 0.81 (bad!)
+But wait... you rerun Change 1 and get 0.79 now 🤔</code></pre>
+        <ul>
+          <li><strong>Impact</strong>: Impossible to know what actually helps</li>
+        </ul>
+
+        <h3>3. <strong>Model Comparison</strong> ⚖️</h3>
+        <ul>
+          <li><strong>Problem</strong>: Can't fairly compare different models</li>
+          <li><strong>Example</strong>:</li>
+        </ul>
+        <pre><code>Model A: Run 1 = 0.82, Run 2 = 0.88, Run 3 = 0.79
+Model B: Run 1 = 0.84, Run 2 = 0.81, Run 3 = 0.87
+Which is better? You can't tell!</code></pre>
+
+        <h3>4. <strong>Collaboration</strong> 👥</h3>
+        <ul>
+          <li><strong>Problem</strong>: Team members get different results with same code</li>
+          <li><strong>Impact</strong>: Wasted time, confusion, inability to share findings</li>
+          <li><strong>Example</strong>:
+            <ul>
+              <li>You train a model: 86% accuracy</li>
+              <li>Your colleague runs your code: 79% accuracy</li>
+              <li>Who's right? Neither can be sure</li>
+            </ul>
+          </li>
+        </ul>
+
+        <h3>5. <strong>Production Deployment</strong> 🚀</h3>
+        <ul>
+          <li><strong>Problem</strong>: Model performance in production differs from training</li>
+          <li><strong>Impact</strong>:
+            <ul>
+              <li>Customer complaints</li>
+              <li>Financial losses</li>
+              <li>Safety issues (medical/autonomous vehicles)</li>
+            </ul>
+          </li>
+          <li><strong>Example</strong>: Medical diagnosis model shows 90% accuracy in your tests but only 75% in hospital</li>
+        </ul>
+
+        <h3>6. <strong>Research Publication</strong> 📝</h3>
+        <ul>
+          <li><strong>Problem</strong>: Reviewers and other researchers cannot replicate your results</li>
+          <li><strong>Impact</strong>:
+            <ul>
+              <li>Paper rejection</li>
+              <li>Scientific credibility damaged</li>
+              <li>Replication crisis in AI research</li>
+            </ul>
+          </li>
+          <li><strong>Fact</strong>: Many papers are rejected because results can't be reproduced</li>
+        </ul>
+
+        <h3>7. <strong>Regulatory Compliance</strong> ⚖️</h3>
+        <ul>
+          <li><strong>Problem</strong>: FDA, healthcare regulators require reproducible results</li>
+          <li><strong>Impact</strong>: Cannot deploy in regulated industries</li>
+          <li><strong>Example</strong>: AI medical device must produce consistent diagnoses</li>
+        </ul>
+
+        <h3>8. <strong>Hyperparameter Tuning</strong> 🎛️</h3>
+        <ul>
+          <li><strong>Problem</strong>: Can't optimize hyperparameters if results vary randomly</li>
+          <li><strong>Example</strong>:</li>
+        </ul>
+        <pre><code>Learning rate 0.001: Acc = 0.85, 0.79, 0.88 (what's the real value?)
+Learning rate 0.0001: Acc = 0.83, 0.86, 0.81 (which is better?)</code></pre>
+      </section>
+
+      <hr />
+
+      <section id="what-happens-without-reproducibility">
+        <h2>What Happens Without Reproducibility</h2>
+
+        <h3>Real-World Consequences:</h3>
+
+        <h3>1. <strong>Wasted Time and Resources</strong> ⏰💰</h3>
+        <ul>
+          <li>You spend weeks optimizing a model</li>
+          <li>Later realize the improvements were just random variation</li>
+          <li>All that work was meaningless</li>
+        </ul>
+
+        <h3>2. <strong>False Conclusions</strong> ❌</h3>
+        <pre><code class="language-python"># You think you improved the model
+Old version: 82% accuracy
+New version: 87% accuracy  # Celebrate! 🎉
+
+# But when you rerun...
+Old version: 84% accuracy
+New version: 81% accuracy  # Actually worse! 😱</code></pre>
+
+        <h3>3. <strong>Unreliable Production Systems</strong> 🏭</h3>
+        <pre><code>Training: Model achieves 90% accuracy
+Production Day 1: 85% accuracy
+Production Day 2: 78% accuracy
+Production Day 3: 92% accuracy
+Customer trust: 0% 📉</code></pre>
+
+        <h3>4. <strong>Research Impact</strong> 📊</h3>
+        <ul>
+          <li>2019 Study: <strong>Only 30%</strong> of deep learning papers could be reproduced</li>
+          <li>Cost to science: Billions of dollars in wasted effort</li>
+          <li>Public trust in AI: Damaged</li>
+        </ul>
+
+        <h3>5. <strong>Legal and Ethical Issues</strong> ⚖️</h3>
+        <ul>
+          <li>Medical misdiagnosis due to inconsistent models</li>
+          <li>Financial losses in trading algorithms</li>
+          <li>Discrimination in hiring AI due to random variation</li>
+        </ul>
+      </section>
+
+      <hr />
+
+      <section id="sources-of-randomness">
+        <h2>Sources of Randomness in Deep Learning</h2>
+        <p>Understanding where randomness comes from helps you control it:</p>
+
+        <h3>1. <strong>Weight Initialization</strong> 🎲</h3>
+        <pre><code class="language-python"># Neural network weights start with random values
+Dense(64)  # Initializes 64 neurons with random weights</code></pre>
+        <ul>
+          <li><strong>Impact</strong>: Different starting points → different final models</li>
+          <li><strong>Each run</strong>: New random weights</li>
+        </ul>
+
+        <h3>2. <strong>Data Shuffling</strong> 🔀</h3>
+        <pre><code class="language-python"># Training data is shuffled each epoch
+model.fit(X_train, y_train, shuffle=True)</code></pre>
+        <ul>
+          <li><strong>Impact</strong>: Different order of training examples</li>
+          <li><strong>Effect</strong>: Model learns differently</li>
+        </ul>
+
+        <h3>3. <strong>Dropout</strong> 💧</h3>
+        <pre><code class="language-python">Dropout(0.3)  # Randomly drops 30% of neurons</code></pre>
+        <ul>
+          <li><strong>Impact</strong>: Different neurons dropped in each training batch</li>
+          <li><strong>Purpose</strong>: Regularization, but introduces randomness</li>
+        </ul>
+
+        <h3>4. <strong>Data Augmentation</strong> 🖼️</h3>
+        <pre><code class="language-python"># Random image transformations
+ImageDataGenerator(rotation_range=20, zoom_range=0.2)</code></pre>
+        <ul>
+          <li><strong>Impact</strong>: Each epoch sees slightly different data</li>
+        </ul>
+
+        <h3>5. <strong>Train/Test Split</strong> ✂️</h3>
+        <pre><code class="language-python">train_test_split(X, y, random_state=None)  # Random split</code></pre>
+        <ul>
+          <li><strong>Impact</strong>: Different subjects in train vs test sets</li>
+        </ul>
+
+        <h3>6. <strong>Batch Sampling</strong> 📦</h3>
+        <pre><code class="language-python">model.fit(X, y, batch_size=32)  # Random batches</code></pre>
+        <ul>
+          <li><strong>Impact</strong>: Different mini-batches each epoch</li>
+        </ul>
+
+        <h3>7. <strong>GPU Operations</strong> 🖥️</h3>
+        <ul>
+          <li>Parallel operations on GPU can execute in different orders</li>
+          <li>Floating-point math is not perfectly deterministic</li>
+          <li><strong>Impact</strong>: Tiny differences accumulate</li>
+        </ul>
+
+        <h3>8. <strong>Python Hash Randomization</strong> 🐍</h3>
+        <pre><code class="language-python"># Python randomizes hash seeds for security
+hash("example")  # Different each program run</code></pre>
+        <ul>
+          <li><strong>Impact</strong>: Affects dictionary ordering, set operations</li>
+        </ul>
+
+        <h3>9. <strong>Operating System</strong> 💻</h3>
+        <ul>
+          <li>Thread scheduling</li>
+          <li>Memory allocation</li>
+          <li><strong>Impact</strong>: Non-deterministic execution order</li>
+        </ul>
+
+        <h3>10. <strong>Multi-threading/Parallelism</strong> ⚡</h3>
+        <pre><code class="language-python"># Multiple CPU cores processing data
+tf.data.Dataset(...).map(func, num_parallel_calls=AUTO)</code></pre>
+        <ul>
+          <li><strong>Impact</strong>: Race conditions, non-deterministic ordering</li>
+        </ul>
+      </section>
+
+      <hr />
+
+      <section id="how-to-make-tensorflow-reproducible">
+        <h2>How to Make TensorFlow Reproducible</h2>
+
+        <h3>Complete Checklist ✅</h3>
+
+        <h3>1. <strong>Set Python Hash Seed</strong> (Before anything else)</h3>
+        <pre><code class="language-python">import os
+os.environ['PYTHONHASHSEED'] = str(42)</code></pre>
+        <p><strong>Why</strong>: Ensures consistent dictionary/set ordering</p>
+        <p><strong>When</strong>: Must be set before importing any libraries</p>
+
+        <h3>2. <strong>Set NumPy Random Seed</strong></h3>
+        <pre><code class="language-python">import numpy as np
+np.random.seed(42)</code></pre>
+        <p><strong>Why</strong>: Controls NumPy operations (data shuffling, sampling)</p>
+
+        <h3>3. <strong>Set TensorFlow Environment Variables</strong> (Before TF import)</h3>
+        <pre><code class="language-python">os.environ['TF_DETERMINISTIC_OPS'] = '1'
+os.environ['TF_CUDNN_DETERMINISTIC'] = '1'</code></pre>
+        <p><strong>Why</strong>: Forces TensorFlow to use deterministic GPU operations</p>
+
+        <h3>4. <strong>Import TensorFlow</strong></h3>
+        <pre><code class="language-python">import tensorflow as tf</code></pre>
+
+        <h3>5. <strong>Enable TensorFlow Determinism</strong></h3>
+        <pre><code class="language-python">tf.config.experimental.enable_op_determinism()</code></pre>
+        <p><strong>Why</strong>: Enforces deterministic behavior across all TF operations</p>
+
+        <h3>6. <strong>Set TensorFlow Random Seeds</strong></h3>
+        <pre><code class="language-python">tf.random.set_seed(42)
+tf.keras.utils.set_random_seed(42)</code></pre>
+        <p><strong>Why</strong>: Controls weight initialization, dropout, etc.</p>
+
+        <h3>7. <strong>Clear Keras Backend</strong> (Before each model)</h3>
+        <pre><code class="language-python">tf.keras.backend.clear_session()</code></pre>
+        <p><strong>Why</strong>: Removes residual state from previous models</p>
+
+        <h3>8. <strong>Set Random State in Sklearn</strong></h3>
+        <pre><code class="language-python">train_test_split(X, y, random_state=42)
+StandardScaler()  # No randomness, but keep pipeline consistent</code></pre>
+        <p><strong>Why</strong>: Ensures consistent data splits</p>
+
+        <h3>9. <strong>Disable Shuffling or Set Seed</strong></h3>
+        <pre><code class="language-python">model.fit(X, y, shuffle=False)  # Or ensure seed is set</code></pre>
+
+        <h3>10. <strong>Use Single Thread</strong> (Optional, for maximum reproducibility)</h3>
+        <pre><code class="language-python">tf.config.threading.set_inter_op_parallelism_threads(1)
+tf.config.threading.set_intra_op_parallelism_threads(1)</code></pre>
+        <p><strong>Warning</strong>: Significantly slower!</p>
+      </section>
+
+      <hr />
+
+      <section id="complete-implementation-guide">
+        <h2>Complete Implementation Guide</h2>
+
+        <h3>Template for Reproducible TensorFlow Code</h3>
+        <pre><code class="language-python">"""
+Reproducible Deep Learning Template
+"""
+import os
+
+# ============================================
+# STEP 1: Set seeds BEFORE any imports
+# ============================================
+RANDOM_SEED = 42
+
+# Python hash seed (must be first!)
+os.environ['PYTHONHASHSEED'] = str(RANDOM_SEED)
+
+# TensorFlow determinism (before TF import)
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
+os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+
+# ============================================
+# STEP 2: Import libraries
+# ============================================
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers, models
+
+# ============================================
+# STEP 3: Set all random seeds
+# ============================================
+np.random.seed(RANDOM_SEED)
+tf.random.set_seed(RANDOM_SEED)
+tf.keras.utils.set_random_seed(RANDOM_SEED)
+
+# Enable TensorFlow determinism
+tf.config.experimental.enable_op_determinism()
+
+# Optional: Limit threads for maximum reproducibility
+# tf.config.threading.set_inter_op_parallelism_threads(1)
+# tf.config.threading.set_intra_op_parallelism_threads(1)
+
+print(f"Random seed set to: {RANDOM_SEED}")
+print(f"TensorFlow version: {tf.__version__}")
+print(f"Deterministic ops enabled: True")
+
+
+# ============================================
+# STEP 4: Function to reset seeds (for multiple runs)
+# ============================================
+def reset_seeds(seed=RANDOM_SEED):
+    """Reset all random seeds - call before each training"""
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
+    tf.keras.utils.set_random_seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+
+
+# ============================================
+# STEP 5: Load and prepare data with fixed seed
+# ============================================
+def prepare_data():
+    # Your data loading code here
+    X, y = load_data()  # Your function
+
+    # Use random_state for consistent splits
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y,
+        test_size=0.2,
+        random_state=RANDOM_SEED,  # Important!
+        stratify=y
+    )
+
+    # Normalization (deterministic)
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    return X_train, X_test, y_train, y_test
+
+
+# ============================================
+# STEP 6: Build model with session clearing
+# ============================================
+def build_model(input_shape):
+    """Build model with clean session"""
+    # Clear any previous models
+    tf.keras.backend.clear_session()
+
+    model = models.Sequential([
+        layers.Dense(64, activation='relu', input_shape=input_shape),
+        layers.Dropout(0.3),
+        layers.Dense(32, activation='relu'),
+        layers.Dropout(0.3),
+        layers.Dense(1, activation='sigmoid')
+    ])
+
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+        loss='binary_crossentropy',
+        metrics=['accuracy']
+    )
+
+    return model
+
+
+# ============================================
+# STEP 7: Training function
+# ============================================
+def train_model(X_train, y_train, X_test, y_test):
+    """Train model with reproducible settings"""
+
+    # Reset seeds before training
+    reset_seeds(RANDOM_SEED)
+
+    # Build model
+    model = build_model((X_train.shape[1],))
+
+    # Train with fixed batch size and epochs
+    history = model.fit(
+        X_train, y_train,
+        validation_data=(X_test, y_test),
+        epochs=50,
+        batch_size=32,
+        shuffle=True,  # OK because seed is set
+        verbose=1
+    )
+
+    return model, history
+
+
+# ============================================
+# STEP 8: Main execution
+# ============================================
+def main():
+    print("="*80)
+    print("REPRODUCIBLE DEEP LEARNING TRAINING")
+    print("="*80)
+
+    # Prepare data
+    X_train, X_test, y_train, y_test = prepare_data()
+
+    # Train model
+    model, history = train_model(X_train, y_train, X_test, y_test)
+
+    # Evaluate
+    test_loss, test_acc = model.evaluate(X_test, y_test, verbose=0)
+    print(f"\nTest Accuracy: {test_acc:.4f}")
+    print(f"Test Loss: {test_loss:.4f}")
+
+    # Save model
+    model.save('reproducible_model.h5')
+    print("\nModel saved. Running again will produce identical results!")
+
+    return model
+
+
+if __name__ == "__main__":
+    model = main()</code></pre>
+
+        <h3>Verification Script</h3>
+        <pre><code class="language-python">"""
+Verify Reproducibility - Run this to test
+"""
+
+def verify_reproducibility(n_runs=3):
+    """Run training multiple times and verify identical results"""
+
+    results = []
+
+    for run in range(1, n_runs + 1):
+        print(f"\n{'='*60}")
+        print(f"RUN {run}/{n_runs}")
+        print(f"{'='*60}")
+
+        # Train model
+        model = main()
+
+        # Get final metrics
+        X_train, X_test, y_train, y_test = prepare_data()
+        loss, acc = model.evaluate(X_test, y_test, verbose=0)
+
+        results.append({
+            'run': run,
+            'accuracy': acc,
+            'loss': loss
+        })
+
+        print(f"Accuracy: {acc:.10f}")
+        print(f"Loss: {loss:.10f}")
+
+    # Check if all results are identical
+    df = pd.DataFrame(results)
+    print(f"\n{'='*60}")
+    print("REPRODUCIBILITY CHECK")
+    print(f"{'='*60}")
+    print(df)
+
+    if df['accuracy'].nunique() == 1 and df['loss'].nunique() == 1:
+        print("\n✅ SUCCESS! All runs produced identical results!")
+        print("Your code is fully reproducible!")
+    else:
+        print("\n❌ FAILURE! Results varied across runs!")
+        print("Check your seed settings!")
+        print(f"Accuracy variance: {df['accuracy'].std()}")
+        print(f"Loss variance: {df['loss'].std()}")
+
+    return df
+
+# Run verification
+verify_reproducibility(n_runs=3)</code></pre>
+      </section>
+
+      <hr />
+
+      <section id="trade-offs">
+        <h2>Trade-offs and Considerations</h2>
+
+        <h3>Advantages of Reproducibility ✅</h3>
+        <ol>
+          <li><strong>Scientific Validity</strong>: Results can be trusted</li>
+          <li><strong>Debugging</strong>: Easy to identify what helps</li>
+          <li><strong>Collaboration</strong>: Team gets same results</li>
+          <li><strong>Publication</strong>: Papers are accepted</li>
+          <li><strong>Deployment</strong>: Predictable production performance</li>
+        </ol>
+
+        <h3>Disadvantages/Trade-offs ⚠️</h3>
+
+        <h3>1. <strong>Performance Impact</strong></h3>
+        <ul>
+          <li>Deterministic operations are <strong>5-30% slower</strong></li>
+          <li>GPU parallelism limited</li>
+          <li><strong>Solution</strong>: Use only during development/testing</li>
+        </ul>
+
+        <h3>2. <strong>Single-threaded Operations</strong></h3>
+        <ul>
+          <li>Maximum reproducibility requires single threading</li>
+          <li>Can be <strong>2-10x slower</strong></li>
+          <li><strong>Solution</strong>: Only enable when absolutely necessary</li>
+        </ul>
+
+        <h3>3. <strong>Hardware Dependence</strong></h3>
+        <ul>
+          <li>Different GPUs may still give slightly different results</li>
+          <li>CPU vs GPU results may differ</li>
+          <li><strong>Solution</strong>: Specify hardware in documentation</li>
+        </ul>
+
+        <h3>4. <strong>Not Always Possible</strong></h3>
+        <ul>
+          <li>Some operations fundamentally non-deterministic</li>
+          <li>Distributed training more challenging</li>
+          <li><strong>Solution</strong>: Document limitations</li>
+        </ul>
+
+        <h3>When is Reproducibility Critical? 🔴</h3>
+
+        <ul>
+          <li><strong>Always critical</strong>:
+            <ul>
+              <li>Medical applications</li>
+              <li>Financial models</li>
+              <li>Safety-critical systems</li>
+              <li>Research papers</li>
+              <li>Regulatory submissions</li>
+            </ul>
+          </li>
+        </ul>
+
+        <ul>
+          <li><strong>Important but flexible</strong>:
+            <ul>
+              <li>Model development</li>
+              <li>Hyperparameter tuning</li>
+              <li>Team collaboration</li>
+            </ul>
+          </li>
+        </ul>
+
+        <ul>
+          <li><strong>Less critical</strong>:
+            <ul>
+              <li>Initial exploration</li>
+              <li>Proof-of-concept</li>
+              <li>When using ensemble methods</li>
+              <li>When averaging across many runs</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+
+      <hr />
+
+      <section id="best-practices">
+        <h2>Best Practices</h2>
+
+        <h3>Do's ✅</h3>
+        <ol>
+          <li><strong>Set Seeds Early</strong>: Before any imports</li>
+          <li><strong>Document Seeds</strong>: Write down all seed values used</li>
+          <li><strong>Version Control</strong>: Track TensorFlow/library versions</li>
+          <li><strong>Save Everything</strong>: Save data splits, preprocessors, models</li>
+          <li><strong>Test Reproducibility</strong>: Run multiple times to verify</li>
+          <li><strong>Document Hardware</strong>: Note GPU/CPU used</li>
+          <li><strong>Use Requirements.txt</strong>: Pin library versions</li>
+          <li><strong>Separate Exploration from Production</strong>: Different reproducibility needs</li>
+        </ol>
+
+        <h3>Don'ts ❌</h3>
+        <ol>
+          <li><strong>Don't set seeds in random places</strong>: Do it once, at the start</li>
+          <li><strong>Don't ignore warnings</strong>: They often indicate non-determinism</li>
+          <li><strong>Don't assume it works</strong>: Always verify</li>
+          <li><strong>Don't use time-based seeds</strong>: <code>seed=int(time.time())</code> is wrong</li>
+          <li><strong>Don't mix random operations without seeds</strong></li>
+          <li><strong>Don't forget to document</strong>: Future you will thank you</li>
+        </ol>
+
+        <h3>Example Requirements.txt</h3>
+        <pre><code>tensorflow==2.15.0
+numpy==1.24.3
+pandas==2.0.3
+scikit-learn==1.3.0
+matplotlib==3.7.2</code></pre>
+
+        <h3>Documentation Template</h3>
+        <pre><code>## Reproducibility Information
+
+- **Random Seed**: 42
+- **TensorFlow Version**: 2.15.0
+- **Python Version**: 3.10.12
+- **Hardware**: NVIDIA RTX 3090 (24GB)
+- **CUDA Version**: 12.2
+- **cuDNN Version**: 8.9
+
+## To Reproduce Results:
+
+1. Install exact dependencies: `pip install -r requirements.txt`
+2. Run with seed 42: `python train.py --seed 42`
+3. Expected accuracy: 0.8542 ± 0.0001
+
+## Known Limitations:
+
+- Results may vary slightly on different GPU models
+- CPU results may differ from GPU by ~0.1%</code></pre>
+
+        <h3>Summary: Quick Reference Card</h3>
+
+        <h3>🎯 Essential Steps (Minimum Required)</h3>
+        <pre><code class="language-python"># 1. Before anything
+import os
+os.environ['PYTHONHASHSEED'] = '42'
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
+os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+
+# 2. Import and set seeds
+import numpy as np
+import tensorflow as tf
+
+SEED = 42
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
+tf.keras.utils.set_random_seed(SEED)
+tf.config.experimental.enable_op_determinism()
+
+# 3. Before each model
+tf.keras.backend.clear_session()
+
+# 4. Use random_state everywhere
+train_test_split(..., random_state=SEED)</code></pre>
+
+        <h3>📊 Is Reproducibility Necessary?</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Necessary?</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Research paper</td>
+              <td>✅ Yes</td>
+              <td>Must be verifiable</td>
+            </tr>
+            <tr>
+              <td>Medical AI</td>
+              <td>✅ Yes</td>
+              <td>Lives depend on it</td>
+            </tr>
+            <tr>
+              <td>Production model</td>
+              <td>✅ Yes</td>
+              <td>Consistent performance</td>
+            </tr>
+            <tr>
+              <td>Debugging</td>
+              <td>✅ Yes</td>
+              <td>Find what works</td>
+            </tr>
+            <tr>
+              <td>Quick experiment</td>
+              <td>⚠️ Optional</td>
+              <td>Speed over precision</td>
+            </tr>
+            <tr>
+              <td>Model ensembles</td>
+              <td>⚠️ Optional</td>
+              <td>Averaging reduces variance</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>💡 Key Takeaway</h3>
+        <p><strong>Reproducibility is not optional for serious work.</strong> It's the foundation of:</p>
+        <ul>
+          <li>Scientific integrity</li>
+          <li>Reliable models</li>
+          <li>Productive development</li>
+          <li>Trustworthy AI systems</li>
+        </ul>
+        <p>Without it, you're essentially doing random guessing with extra steps.</p>
+
+        <hr />
+
+        <h3>Further Reading</h3>
+        <ol>
+          <li><strong>TensorFlow Official Guide</strong>: <a href="https://www.tensorflow.org/api_docs/python/tf/config/experimental/enable_op_determinism" target="_blank" rel="noopener noreferrer">Determinism in TensorFlow</a></li>
+          <li><strong>Papers With Code</strong>: <a href="https://paperswithcode.com/rc2020" target="_blank" rel="noopener noreferrer">Reproducibility Checklist</a></li>
+          <li><strong>Nature Paper</strong>: &quot;Reproducibility crisis in AI research&quot; (2019)</li>
+          <li><strong>NVIDIA Documentation</strong>: <a href="https://docs.nvidia.com/deeplearning/frameworks/tensorflow-user-guide/index.html" target="_blank" rel="noopener noreferrer">Determinism in Deep Learning</a></li>
+        </ol>
+
+        <p class="footer-note">
+          <em>Remember: A model that can't be reproduced is just an expensive random number generator.</em> 🎲➡️🔒
+        </p>
+      </section>
+
+      <hr />
+
+      <section>
+        <h3>Vanilla SMOTE Example Table (From Earlier Section)</h3>
+        <p>This table appears in the explanation of vanilla SMOTE:</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Sample</th>
+              <th>Feature1</th>
+              <th>Feature2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>A</td>
+              <td>1.0</td>
+              <td>2.0</td>
+            </tr>
+            <tr>
+              <td>B</td>
+              <td>2.0</td>
+              <td>3.0</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">
+          This sits alongside the explanation of SMOTE, where:
+          <span class="inline-em">SMOTE creates interpolated samples between minority-class examples.</span>
+        </p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

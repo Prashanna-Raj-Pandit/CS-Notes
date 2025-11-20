@@ -50,6 +50,8 @@ TOPICS = {
              'description': 'SGD, Adam, learning rate scheduling'},
             {'id': 'reduce-lr-plateau', 'title': 'ReduceLROnPlateau',
              'description': 'Understanding plateaus and learning rate reduction'},
+            {'id': 'reproducibility', 'title': 'Reproducibility',
+             'description': 'From randomness to determinism in TensorFlow'},
             {'id': 'transfer-learning', 'title': 'Transfer Learning',
              'description': 'Pre-trained models and fine-tuning'},
         ]
@@ -154,6 +156,8 @@ def content_detail(topic_id, subtopic_id):
                                        topic_id=topic_id)
             elif subtopic_id == 'seg-emb':
                 return render_template('segmentation_embedding.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
+            elif subtopic_id=="reproducibility":
+                return render_template("/dl/reproducibility.html",topic=topic,subtopic=subtopic,topic_id=topic_id)
 
             ## Stat
             elif subtopic_id == 'bias-variance':
