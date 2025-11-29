@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Train / Validation / Test Splits & Data Leakage – Practical Guide</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-alt: #141a2a;
+      --card-bg: #181f33;
+      --accent: #4f9dff;
+      --accent-soft: rgba(79, 157, 255, 0.15);
+      --text: #e7ecff;
+      --text-muted: #9aa3c7;
+      --border: #262d46;
+      --code-bg: #101626;
+      --danger: #ff5370;
+      --success: #4fd187;
+      --warning: #ffb347;
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #151c33 0, #050814 55%, #02030a 100%);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.6;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .badge-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(15, 22, 45, 0.7);
+      color: var(--text-muted);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: rgba(15, 22, 45, 0.9);
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      padding: 1.25rem 1.4rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7);
+    }
+
+    .card h2,
+    .card h3,
+    .card h4 {
+      margin-bottom: 0.4rem;
+    }
+
+    .card h2 {
+      font-size: 1.2rem;
+    }
+
+    .card h3 {
+      font-size: 1.05rem;
+      margin-top: 0.6rem;
+    }
+
+    .card h4 {
+      font-size: 0.95rem;
+      margin-top: 0.5rem;
+    }
+
+    p {
+      margin-bottom: 0.6rem;
+      font-size: 0.92rem;
+    }
+
+    ul, ol {
+      margin: 0.35rem 0 0.6rem 1.1rem;
+      font-size: 0.9rem;
+    }
+
+    li + li {
+      margin-top: 0.2rem;
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.78rem;
+      padding: 0.18rem 0.5rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(79, 157, 255, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .pill small {
+      opacity: 0.8;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      background: var(--code-bg);
+      padding: 0.1rem 0.25rem;
+      border-radius: 4px;
+      font-size: 0.78rem;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border-radius: 0.7rem;
+      padding: 0.9rem 1rem;
+      overflow-x: auto;
+      border: 1px solid #1f2741;
+      margin: 0.4rem 0 0.8rem;
+      font-size: 0.8rem;
+    }
+
+    pre code {
+      padding: 0;
+      background: none;
+    }
+
+    .callout {
+      border-radius: 0.8rem;
+      padding: 0.7rem 0.8rem;
+      margin: 0.6rem 0 0.8rem;
+      font-size: 0.85rem;
+      display: flex;
+      gap: 0.6rem;
+      align-items: flex-start;
+    }
+
+    .callout-icon {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .callout.danger {
+      border: 1px solid rgba(255, 83, 112, 0.5);
+      background: rgba(255, 83, 112, 0.06);
+      color: var(--text);
+    }
+
+    .callout.success {
+      border: 1px solid rgba(79, 209, 135, 0.5);
+      background: rgba(79, 209, 135, 0.06);
+    }
+
+    .callout.info {
+      border: 1px solid rgba(79, 157, 255, 0.5);
+      background: rgba(79, 157, 255, 0.08);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.4rem;
+    }
+
+    .tag {
+      font-size: 0.75rem;
+      padding: 0.12rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(21, 29, 60, 0.9);
+      border: 1px solid rgba(150, 160, 210, 0.25);
+      color: var(--text-muted);
+    }
+
+    .toc {
+      list-style: none;
+      margin-left: 0;
+      font-size: 0.9rem;
+    }
+
+    .toc li {
+      margin-bottom: 0.3rem;
+    }
+
+    .toc a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(79, 157, 255, 0.4);
+    }
+
+    .toc a:hover {
+      border-bottom-style: solid;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    hr {
+      border: 0;
+      border-top: 1px solid rgba(70, 78, 117, 0.6);
+      margin: 0.6rem 0 0.8rem;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .metric {
+      border-radius: 0.7rem;
+      border: 1px solid rgba(54, 64, 112, 0.9);
+      padding: 0.5rem 0.6rem;
+      background: rgba(8, 12, 30, 0.9);
+      font-size: 0.8rem;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 0.9rem;
+    }
+
+    .footnote {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Train / Validation / Test Splits &amp; Data Leakage</h1>
+      <p>Practical guide for deep learning projects (e.g., gait-based ASD classification using CNN–LSTM)</p>
+      <div class="badge-row">
+        <span class="badge">Python · TensorFlow / Keras</span>
+        <span class="badge">LSTM · CNN</span>
+        <span class="badge">K-fold Cross-Validation</span>
+        <span class="badge">No Data Leakage</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- LEFT COLUMN -->
+      <section>
+        <article class="card">
+          <div class="pill"><small>Overview</small></div>
+          <h2 id="intro">1. Why splitting your data correctly matters</h2>
+          <p>
+            In machine learning, it is not enough to build a powerful model; you must also evaluate it
+            in a way that reflects real-world performance. This requires splitting your dataset into
+            distinct subsets and strictly avoiding <strong>data leakage</strong>—any situation where
+            information from the test set influences the training process.
+          </p>
+          <p>
+            This document explains:
+          </p>
+          <ul>
+            <li>What train, validation, and test sets are and how they differ.</li>
+            <li>Why using the test set for validation leads to data leakage.</li>
+            <li>How to correctly implement K-fold cross-validation.</li>
+            <li>How these ideas apply to sequence models like CNN–LSTM for gait analysis.</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Navigation</small></div>
+          <h2 id="toc">2. Table of Contents</h2>
+          <ul class="toc">
+            <li><a href="#splits">3. Train / Validation / Test: Roles and definitions</a></li>
+            <li><a href="#leakage">4. What is data leakage?</a></li>
+            <li><a href="#wrong-scenario">5. Example of a wrong split (leakage)</a></li>
+            <li><a href="#correct-splits">6. Correct split strategies</a></li>
+            <li><a href="#kfold">7. K-fold cross-validation (Version 2)</a></li>
+            <li><a href="#gait">8. Applying this to gait-based CNN–LSTM models</a></li>
+            <li><a href="#checklist">9. Practical checklist</a></li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Concepts</small></div>
+          <h2 id="splits">3. Train / Validation / Test: Roles and definitions</h2>
+
+          <h3>3.1 Train set</h3>
+          <p>
+            The <strong>train set</strong> is the portion of data the model sees during learning.
+            Gradients are computed on this data, and model weights are updated accordingly. In deep
+            learning, this typically corresponds to <code>X_train</code> and <code>y_train</code>.
+          </p>
+
+          <h3>3.2 Validation set</h3>
+          <p>
+            The <strong>validation set</strong> is used during training to tune hyperparameters, select
+            the best model, and monitor overfitting. The model does not update its weights directly on
+            this set, but its performance on the validation data guides:
+          </p>
+          <ul>
+            <li>early stopping,</li>
+            <li>learning rate schedules,</li>
+            <li>architecture and hyperparameter choices.</li>
+          </ul>
+
+          <h3>3.3 Test set</h3>
+          <p>
+            The <strong>test set</strong> is used <em>only once</em>, at the very end, to estimate
+            how well the final, chosen model generalizes to truly unseen data. It should not influence
+            model design, tuning, or training decisions.
+          </p>
+
+          <div class="callout info">
+            <div class="callout-icon">ℹ️</div>
+            <div>
+              <strong>Rule of thumb:</strong> Once you use the test set to make a decision
+              (e.g., choose a model), it is no longer a test set—it has become part of the tuning
+              pipeline.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Data Leakage</small></div>
+          <h2 id="leakage">4. What is data leakage?</h2>
+          <p>
+            <strong>Data leakage</strong> occurs when information from outside the training data
+            “leaks” into the training process, giving the model access to information it would not
+            have in a real-world scenario. As a result, performance metrics become overly optimistic
+            and do not reflect true generalization.
+          </p>
+
+          <h3>4.1 Common examples</h3>
+          <ul>
+            <li>Using the test set for hyperparameter tuning (directly or indirectly).</li>
+            <li>Applying normalization or SMOTE on the entire dataset before splitting.</li>
+            <li>Including future information in time-series models (e.g., using future frames to predict past labels).</li>
+            <li>Subject-level leakage in medical or gait data (same subject appears in both train and test).</li>
+          </ul>
+
+          <div class="callout danger">
+            <div class="callout-icon">⚠️</div>
+            <div>
+              If your model sees the test data during training—<strong>even indirectly</strong>—you
+              cannot trust the reported accuracy, AUC, or F1-score. The model may simply be
+              memorizing patterns specific to those test samples.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Anti-Pattern</small></div>
+          <h2 id="wrong-scenario">5. Example of a wrong split (leakage scenario)</h2>
+          <p>
+            Consider the following incorrect workflow:
+          </p>
+          <pre><code class="language-python"># ❌ WRONG (data leakage)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+
+# Train on X_train
+model.fit(X_train, y_train, validation_data=(X_test, y_test))
+
+# Later...
+model.evaluate(X_test, y_test)  # "Final test performance"</code></pre>
+
+          <p>
+            In this setup:
+          </p>
+          <ul>
+            <li>The test set (<code>X_test, y_test</code>) is used as a validation set during training.</li>
+            <li>The model and hyperparameters (e.g., number of epochs, early stopping) are chosen based on performance on this “test” data.</li>
+            <li>Then, the same data is used again for final evaluation.</li>
+          </ul>
+
+          <div class="callout danger">
+            <div class="callout-icon">🚫</div>
+            <div>
+              This is <strong>data leakage</strong> because the test set is influencing the training
+              process. The model is indirectly tuned to perform well on that specific data, and
+              reported performance will be biased.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Best Practice</small></div>
+          <h2 id="correct-splits">6. Correct split strategies (no leakage)</h2>
+
+          <h3>6.1 Simple 3-way split: train / validation / test</h3>
+          <p>
+            A common, leakage-free strategy is to split the data into three parts:
+          </p>
+          <pre><code class="language-python">from sklearn.model_selection import train_test_split
+
+# First: train + temp
+X_train, X_temp, y_train, y_temp = train_test_split(
+    X, y, test_size=0.3, stratify=y, random_state=42
+)
+
+# Second: validation + test (split the temp set)
+X_val, X_test, y_val, y_test = train_test_split(
+    X_temp, y_temp, test_size=0.5, stratify=y_temp, random_state=42
+)</code></pre>
+
+          <p>
+            This results in approximately:
+          </p>
+          <ul>
+            <li>70% training data</li>
+            <li>15% validation data</li>
+            <li>15% test data</li>
+          </ul>
+
+          <h4>Use during model training:</h4>
+          <pre><code class="language-python">history = model.fit(
+    X_train, y_train,
+    validation_data=(X_val, y_val),
+    epochs=EPOCHS,
+    batch_size=BATCH_SIZE,
+    callbacks=[...]
+)
+
+# Final evaluation (only once)
+test_loss, test_acc = model.evaluate(X_test, y_test)</code></pre>
+
+          <div class="callout success">
+            <div class="callout-icon">✅</div>
+            <div>
+              The test set (<code>X_test</code>) is completely untouched until the end. It is
+              used exactly once for final evaluation, so your metrics reflect how the model
+              will behave on new, unseen subjects.
+            </div>
+          </div>
+
+          <h3>6.2 Important: Apply preprocessing only on training data</h3>
+          <p>
+            When using scaling, SMOTE, or other preprocessing steps, always fit them on
+            the training data only:
+          </p>
+          <pre><code class="language-python"># ✅ Correct: fit on train, transform on all
+scaler.fit(X_train)
+X_train_scaled = scaler.transform(X_train)
+X_val_scaled   = scaler.transform(X_val)
+X_test_scaled  = scaler.transform(X_test)
+
+# ✅ Correct: SMOTE on train only
+X_train_res, y_train_res = smote.fit_resample(X_train_scaled, y_train)
+
+# ❌ Wrong: NEVER fit on full dataset before splitting
+# scaler.fit(X); smote.fit_resample(X, y)</code></pre>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Advanced</small></div>
+          <h2 id="kfold">7. K-fold cross-validation (Version 2)</h2>
+          <p>
+            For small or imbalanced datasets, a single train/validation split may not be
+            reliable enough. <strong>K-fold cross-validation</strong> improves robustness by
+            training and evaluating the model across multiple different splits.
+          </p>
+
+          <h3>7.1 Idea</h3>
+          <ul>
+            <li>Split the dataset into <code>K</code> folds (e.g., 5 or 10).</li>
+            <li>For each fold:
+              <ul>
+                <li>Use that fold as the validation (or test) set.</li>
+                <li>Train on the remaining <code>K-1</code> folds.</li>
+              </ul>
+            </li>
+            <li>Average performance metrics across folds.</li>
+          </ul>
+
+          <h3>7.2 Example (conceptual)</h3>
+          <pre><code class="language-python">from sklearn.model_selection import KFold
+
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+fold_metrics = []
+
+for fold, (train_idx, val_idx) in enumerate(kf.split(X)):
+    print(f"Fold {fold + 1}")
+    X_train, X_val = X[train_idx], X[val_idx]
+    y_train, y_val = y[train_idx], y[val_idx]
+
+    # Fit scaler / SMOTE only on this fold's training data
+    scaler.fit(X_train)
+    X_train_scaled = scaler.transform(X_train)
+    X_val_scaled   = scaler.transform(X_val)
+
+    X_train_res, y_train_res = smote.fit_resample(X_train_scaled, y_train)
+
+    model = build_model()  # fresh CNN–LSTM model for each fold
+    history = model.fit(
+        X_train_res, y_train_res,
+        validation_data=(X_val_scaled, y_val),
+        epochs=EPOCHS,
+        batch_size=BATCH_SIZE,
+        verbose=0
+    )
+
+    val_loss, val_acc = model.evaluate(X_val_scaled, y_val, verbose=0)
+    fold_metrics.append(val_acc)</code></pre>
+
+          <p>
+            At the end, you can report:
+          </p>
+          <ul>
+            <li>Mean validation accuracy across folds.</li>
+            <li>Standard deviation of accuracy.</li>
+            <li>Any additional metrics (F1-score, AUC) averaged across folds.</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Application</small></div>
+          <h2 id="gait">8. Applying this to gait-based CNN–LSTM models</h2>
+          <p>
+            In gait analysis (e.g., ASD vs. non-ASD classification), each subject is
+            represented by a sequence of gait features, such as:
+          </p>
+          <ul>
+            <li>hip and knee flexion/extension,</li>
+            <li>hip and knee abduction/adduction,</li>
+            <li>normalized to a fixed number of frames (e.g., 120).</li>
+          </ul>
+          <p>
+            This produces a 3D tensor:
+          </p>
+          <pre><code>X.shape = (N_subjects, T_frames, F_features)</code></pre>
+
+          <p>
+            Key points to avoid leakage in this setting:
+          </p>
+          <ul>
+            <li>Split data at the <strong>subject level</strong>, not at the frame level.</li>
+            <li>Ensure that the same subject never appears in both training and test sets.</li>
+            <li>Apply sequence-level preprocessing (e.g., scaling, SMOTE on flattened sequences)
+                only within each training split or fold.</li>
+            <li>Use validation data for early stopping and model selection, not the test set.</li>
+          </ul>
+
+          <div class="callout success">
+            <div class="callout-icon">🧠</div>
+            <div>
+              When using CNN–LSTM architectures, keep the temporal structure of the data
+              intact during training (3D input). Only flatten sequences temporarily if needed
+              for operations like SMOTE, then reshape back to 3D afterwards.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Checklist</small></div>
+          <h2 id="checklist">9. Practical checklist: “Do I have data leakage?”</h2>
+          <p>Before trusting your results, ask yourself:</p>
+          <ul>
+            <li>Did I ever use the test set to:
+              <ul>
+                <li>tune hyperparameters,</li>
+                <li>decide when to stop training, or</li>
+                <li>select between different model architectures?</li>
+              </ul>
+            </li>
+            <li>Did I fit any preprocessing (scaler, SMOTE, PCA, etc.) on the full dataset instead of only the training part?</li>
+            <li>In subject-based data, could the same subject appear in both train and test sets?</li>
+            <li>Did I reuse the test set multiple times to iteratively improve my model?</li>
+          </ul>
+
+          <div class="callout danger">
+            <div class="callout-icon">❗</div>
+            <div>
+              If the answer is “yes” to any of the questions above, your evaluation is
+              likely biased due to data leakage. You should redesign the split and
+              repeat the experiments.
+            </div>
+          </div>
+
+          <p>
+            A clean experiment pipeline typically looks like:
+          </p>
+          <ol>
+            <li>Define task and labels (e.g., ASD vs. non-ASD).</li>
+            <li>Split subjects into train / validation / test (or K folds).</li>
+            <li>Fit preprocessing only on training data.</li>
+            <li>Train models, tune on validation, use early stopping if needed.</li>
+            <li>Freeze the final model and evaluate once on the test set.</li>
+            <li>Report metrics with clear description of the split procedure.</li>
+          </ol>
+        </article>
+      </section>
+
+      <!-- RIGHT COLUMN -->
+      <aside>
+        <article class="card">
+          <div class="pill"><small>Quick View</small></div>
+          <h2>Split summary</h2>
+          <div class="metric-row">
+            <div class="metric">
+              <strong>Train set</strong>
+              Typically 60–80% of data. Used to fit model weights.
+            </div>
+            <div class="metric">
+              <strong>Validation set</strong>
+              Used for hyperparameter tuning and early stopping.
+            </div>
+            <div class="metric">
+              <strong>Test set</strong>
+              Used only once for final unbiased evaluation.
+            </div>
+          </div>
+          <hr />
+          <p class="muted">
+            In small datasets, use K-fold cross-validation for stable estimates and
+            keep a separate held-out test set when possible.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Do &amp; Don’t</small></div>
+          <h2>Data leakage: do vs. don’t</h2>
+          <h3>✅ Do</h3>
+          <ul>
+            <li>Fit scalers and SMOTE on <strong>train only</strong>.</li>
+            <li>Use validation data or K-fold CV for tuning.</li>
+            <li>Keep the test set unseen until the end.</li>
+            <li>Split by subject for gait / medical data.</li>
+          </ul>
+          <h3>❌ Don’t</h3>
+          <ul>
+            <li>Use <code>X_test</code> as validation during training.</li>
+            <li>Fit preprocessing on the entire dataset.</li>
+            <li>Report results after repeatedly tweaking based on test accuracy.</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Implementation Tips</small></div>
+          <h2>Implementation tips (TensorFlow / Keras)</h2>
+          <ul>
+            <li>Use <code>validation_data=(X_val, y_val)</code> in <code>model.fit()</code>, not the test set.</li>
+            <li>Use callbacks like <code>EarlyStopping</code> with <code>monitor="val_loss"</code>.</li>
+            <li>Reset / rebuild the model from scratch in each K-fold iteration.</li>
+            <li>Log metrics per fold for transparency.</li>
+          </ul>
+          <pre><code class="language-python">from tensorflow.keras.callbacks import EarlyStopping
+
+early_stop = EarlyStopping(
+    monitor="val_loss",
+    patience=10,
+    restore_best_weights=True
+)
+
+history = model.fit(
+    X_train, y_train,
+    validation_data=(X_val, y_val),
+    epochs=200,
+    batch_size=32,
+    callbacks=[early_stop]
+)</code></pre>
+        </article>
+
+        <article class="card">
+          <div class="pill"><small>Keywords</small></div>
+          <h2>Keywords</h2>
+          <div class="tag-row">
+            <span class="tag">Train / Validation / Test</span>
+            <span class="tag">Data Leakage</span>
+            <span class="tag">K-fold Cross-Validation</span>
+            <span class="tag">SMOTE</span>
+            <span class="tag">Min–Max Scaling</span>
+            <span class="tag">CNN–LSTM</span>
+            <span class="tag">Gait Analysis</span>
+            <span class="tag">ASD Classification</span>
+            <span class="tag">Sequence Modeling</span>
+          </div>
+          <p class="footnote">
+            You can adapt this documentation for any supervised learning task by replacing
+            the gait/ASD-specific examples with your own domain.
+          </p>
+        </article>
+      </aside>
+    </main>
+  </div>
+</body>
+</html>

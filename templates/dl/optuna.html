@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Complete Guide to Hyperparameter Tuning with Optuna</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-alt: #020617;
+      --card: #020617;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56,189,248,0.15);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #1f2937;
+      --code-bg: #020617;
+      --code-border: #1f2937;
+      --danger: #f97373;
+      --success: #4ade80;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at 0 0, #1f2937 0, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .page {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: rgba(15,23,42,0.97);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem 1.25rem;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      max-height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar h1 {
+      font-size: 1.15rem;
+      margin: 0 0 0.75rem;
+      color: var(--accent);
+    }
+
+    .sidebar small {
+      color: var(--muted);
+      display: block;
+      margin-bottom: 1.5rem;
+      font-size: 0.75rem;
+    }
+
+    .sidebar a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: block;
+      margin: 0.15rem 0;
+      padding: 0.15rem 0.25rem;
+      border-radius: 0.25rem;
+    }
+
+    .sidebar a:hover {
+      color: var(--accent);
+      background: rgba(15,23,42,0.9);
+    }
+
+    .sidebar .section-title {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .content {
+      flex: 1;
+      padding: 2rem 3vw 3rem;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3, h4 {
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.4rem;
+    }
+
+    p {
+      margin: 0.25rem 0 0.75rem;
+    }
+
+    .lead {
+      font-size: 1rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .pill {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 0.15rem 0.7rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      background: rgba(15,23,42,0.9);
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, #111827 0, var(--card) 60%);
+      border-radius: 0.9rem;
+      border: 1px solid var(--border);
+      padding: 1.1rem 1.15rem;
+      margin: 1rem 0 1.25rem;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.4);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.4rem;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.55rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .badge-primary {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(56,189,248,0.08);
+    }
+
+    .badge-danger {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: rgba(248,113,113,0.08);
+    }
+
+    .badge-success {
+      border-color: var(--success);
+      color: var(--success);
+      background: rgba(74,222,128,0.08);
+    }
+
+    code, pre {
+      font-family: "JetBrains Mono", Menlo, Monaco, Consolas, "Courier New",
+        monospace;
+      font-size: 0.8rem;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border-radius: 0.7rem;
+      border: 1px solid var(--code-border);
+      padding: 0.85rem 0.95rem;
+      overflow-x: auto;
+      margin: 0.75rem 0 1rem;
+    }
+
+    pre::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    pre::-webkit-scrollbar-thumb {
+      background: #4b5563;
+      border-radius: 999px;
+    }
+
+    code {
+      background: rgba(15,23,42,0.9);
+      padding: 0.1rem 0.3rem;
+      border-radius: 0.3rem;
+      border: 1px solid rgba(55,65,81,0.8);
+      color: #e5e7eb;
+    }
+
+    ul, ol {
+      padding-left: 1.2rem;
+      margin-top: 0.25rem;
+      margin-bottom: 0.85rem;
+    }
+
+    li {
+      margin-bottom: 0.25rem;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      gap: 1rem;
+    }
+
+    .kbd {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      border-radius: 0.35rem;
+      border: 1px solid var(--border);
+      padding: 0.05rem 0.4rem;
+      background: rgba(15,23,42,0.9);
+      color: var(--muted);
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin: 0.5rem 0 1rem;
+    }
+
+    .table th, .table td {
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.45rem;
+      text-align: left;
+    }
+
+    .table th {
+      background: rgba(15,23,42,0.9);
+    }
+
+    .table caption {
+      text-align: left;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .callout {
+      border-left: 3px solid var(--accent);
+      padding: 0.5rem 0.75rem;
+      margin: 0.75rem 0 1rem;
+      background: rgba(15,23,42,0.8);
+      border-radius: 0.35rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .callout-err {
+      border-left-color: var(--danger);
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      border-radius: 999px;
+      padding: 0.05rem 0.45rem;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-right: 0.25rem;
+    }
+
+    @media (max-width: 900px) {
+      .page {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .content {
+        padding: 1.5rem 1.1rem 2.2rem;
+      }
+
+      .two-col {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="sidebar">
+      <h1>Optuna Hyperparameter Tuning</h1>
+      <small>Deep learning–oriented guide (Keras / BiLSTM / Time series)</small>
+
+      <div class="section-title">Overview</div>
+      <a href="#intro">1. What is Hyperparameter Tuning?</a>
+      <a href="#what-is-optuna">2. What is Optuna?</a>
+      <a href="#core-concepts">3. Core Concepts: Study, Trial, Objective</a>
+
+      <div class="section-title">Using Optuna</div>
+      <a href="#install">4. Installation & Basic Template</a>
+      <a href="#search-space">5. Defining Search Spaces</a>
+      <a href="#objective-details">6. The Objective Function in Depth</a>
+      <a href="#metrics">7. What to Return (last vs best)</a>
+      <a href="#samplers">8. Samplers (TPE & others)</a>
+      <a href="#pruning">9. Pruning vs EarlyStopping</a>
+
+      <div class="section-title">Deep Learning Focus</div>
+      <a href="#keras-example">10. Keras / BiLSTM Example</a>
+      <a href="#best-model">11. Using Best Hyperparameters</a>
+      <a href="#repro">12. Reproducibility & Seeds</a>
+
+      <div class="section-title">Practice & Pitfalls</div>
+      <a href="#pitfalls">13. Common Pitfalls</a>
+      <a href="#advanced">14. Advanced Features & Visualization</a>
+      <a href="#checklist">15. Practical Checklist</a>
+    </aside>
+
+    <main class="content">
+      <section id="intro">
+        <h1>Complete Guide to Hyperparameter Tuning with Optuna</h1>
+        <p class="lead">
+          This page is a self-contained tutorial on Optuna and hyperparameter tuning, focused on deep learning and time-series models (like BiLSTM for gait analysis). You can drop this file directly on a website and it will render as a styled documentation page.
+        </p>
+
+        <div class="pill-row">
+          <span class="pill">Python</span>
+          <span class="pill">TensorFlow / Keras</span>
+          <span class="pill">BiLSTM</span>
+          <span class="pill">Optuna</span>
+          <span class="pill">SMOTE / Imbalance</span>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <strong>1. What is Hyperparameter Tuning?</strong>
+            <span class="badge badge-primary">Concept</span>
+          </div>
+          <p>
+            A <strong>hyperparameter</strong> is anything you choose <em>before</em> training:
+          </p>
+          <ul>
+            <li>Learning rate</li>
+            <li>Number of LSTM units (e.g., 32, 64, 128)</li>
+            <li>Number of layers (1 LSTM vs 2 stacked BiLSTM)</li>
+            <li>Dropout rate (e.g. 0.2–0.5)</li>
+            <li>Batch size (e.g. 16, 32, 64)</li>
+            <li>Optimizer type (<code>"adam"</code> vs <code>"rmsprop"</code>)</li>
+          </ul>
+          <p>
+            Hyperparameter tuning is the process of searching for the combination of these values that gives the best validation performance (e.g., highest validation accuracy or lowest validation loss).
+          </p>
+        </div>
+      </section>
+
+      <section id="what-is-optuna">
+        <h2>2. What is Optuna?</h2>
+        <p>
+          <strong>Optuna</strong> is a modern, Python-based library for <em>automatic hyperparameter optimization</em>. Instead of manually guessing hyperparameters, Optuna:
+        </p>
+        <ul>
+          <li>Defines a <strong>search space</strong> of possibilities.</li>
+          <li>Runs many trials (experiments) with different combinations.</li>
+          <li>Uses smart algorithms (like TPE) to focus on promising regions.</li>
+          <li>Optionally prunes bad trials early to save time.</li>
+        </ul>
+
+        <div class="card">
+          <div class="card-header">
+            <span><strong>Key benefits:</strong></span>
+            <span class="badge">Why Optuna?</span>
+          </div>
+          <ul>
+            <li><strong>Flexible</strong>: Works with any Python code (Keras, PyTorch, XGBoost, etc.).</li>
+            <li><strong>Efficient</strong>: Uses Bayesian optimization (TPE) instead of naive grid search.</li>
+            <li><strong>Supports pruning</strong>: Stops unpromising trials early.</li>
+            <li><strong>Good for deep learning</strong>: Integrates with Keras through callbacks.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="core-concepts">
+        <h2>3. Core Concepts: Study, Trial, Objective</h2>
+
+        <div class="two-col">
+          <div>
+            <h3>3.1 Objective Function</h3>
+            <p>
+              The <code>objective(trial)</code> function is the heart of Optuna.
+              Optuna keeps calling this function with different <code>trial</code> objects. Inside it you:
+            </p>
+            <ol>
+              <li>Ask for hyperparameters with <code>trial.suggest_...</code>.</li>
+              <li>Build and train a model using those hyperparameters.</li>
+              <li>Return a scalar metric (e.g., best validation accuracy).</li>
+            </ol>
+
+            <h3>3.2 Trial</h3>
+            <p>
+              A <strong>trial</strong> = one complete run of the objective function with one particular set of hyperparameters.
+            </p>
+            <ul>
+              <li><code>trial.suggest_categorical(...)</code> &rarr; picks one value from a list.</li>
+              <li><code>trial.suggest_float(...)</code> &rarr; picks a float from a range.</li>
+              <li><code>trial.suggest_int(...)</code> &rarr; picks an integer from a range.</li>
+            </ul>
+            <p>
+              For example, if you use <code>n_trials=40</code>, Optuna will run 40 different trials with different hyperparameters.
+            </p>
+          </div>
+
+          <div>
+            <h3>3.3 Study</h3>
+            <p>
+              A <strong>study</strong> is an Optuna object that:
+            </p>
+            <ul>
+              <li>Manages all trials.</li>
+              <li>Stores trial results and hyperparameters.</li>
+              <li>Knows which trial is the best.</li>
+            </ul>
+            <pre><code class="language-python">import optuna
+
+study = optuna.create_study(direction="maximize")
+study.optimize(objective, n_trials=40)
+
+print("Best value:", study.best_value)
+print("Best params:", study.best_params)</code></pre>
+            <p>
+              You can think of the study as the “experiment manager” that records everything.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="install">
+        <h2>4. Installation & Basic Template</h2>
+
+        <h3>4.1 Install Optuna</h3>
+        <pre><code class="language-bash">pip install optuna</code></pre>
+
+        <h3>4.2 Minimal Example (Non-Deep-Learning)</h3>
+        <p>We want to maximize the function <code>f(x) = -(x - 2)^2 + 10</code>.</p>
+        <pre><code class="language-python">import optuna
+
+def objective(trial):
+    x = trial.suggest_float("x", -10, 10)
+    return -(x - 2) ** 2 + 10
+
+study = optuna.create_study(direction="maximize")
+study.optimize(objective, n_trials=50)
+
+print("Best value:", study.best_value)
+print("Best params:", study.best_params)</code></pre>
+        <p>
+          Optuna will discover that the best <code>x</code> is around <code>2</code>.
+        </p>
+      </section>
+
+      <section id="search-space">
+        <h2>5. Defining Search Spaces</h2>
+        <p>
+          The search space is defined via <code>trial.suggest_*</code> methods. Each call tells Optuna:
+        </p>
+        <ul>
+          <li>What the hyperparameter is named (e.g. <code>"learning_rate"</code>).</li>
+          <li>Which values are allowed (range or list).</li>
+        </ul>
+
+        <table class="table">
+          <caption>Common Suggest Methods</caption>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Use case</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>suggest_categorical</code></td>
+              <td>Choose from discrete options.</td>
+              <td><code>trial.suggest_categorical("optimizer", ["adam", "rmsprop"])</code></td>
+            </tr>
+            <tr>
+              <td><code>suggest_float</code></td>
+              <td>Continuous value (uniform range).</td>
+              <td><code>trial.suggest_float("dropout", 0.2, 0.5)</code></td>
+            </tr>
+            <tr>
+              <td><code>suggest_float(..., log=True)</code></td>
+              <td>Continuous value on log scale (for LR).</td>
+              <td><code>trial.suggest_float("lr", 1e-5, 1e-3, log=True)</code></td>
+            </tr>
+            <tr>
+              <td><code>suggest_int</code></td>
+              <td>Integer values.</td>
+              <td><code>trial.suggest_int("lstm_units", 32, 128, step=16)</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="card">
+          <div class="card-header">
+            <span>Example: BiLSTM Search Space</span>
+            <span class="badge">Deep Learning</span>
+          </div>
+          <pre><code class="language-python">def build_model(trial, input_shape):
+    lstm_units_1 = trial.suggest_categorical("lstm_units_1", [16, 32, 64, 96, 128])
+    lstm_units_2 = trial.suggest_categorical("lstm_units_2", [8, 16, 24, 32, 48])
+    dense_units  = trial.suggest_categorical("dense_units",  [16, 32, 48, 64])
+    dropout      = trial.suggest_float("dropout_rate", 0.2, 0.5)
+    use_second   = trial.suggest_categorical("use_second_lstm", [True, False])
+    lr           = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
+    opt_choice   = trial.suggest_categorical("optimizer_choice", ["adam", "rmsprop"])
+    ...</code></pre>
+          <p>
+            <code>suggest_categorical</code> means the trial <strong>must pick exactly one value</strong> from the list. It is NOT a range; it is a discrete set of allowed choices.
+          </p>
+        </div>
+      </section>
+
+      <section id="objective-details">
+        <h2>6. The Objective Function in Depth</h2>
+
+        <h3>6.1 General pattern</h3>
+        <pre><code class="language-python">def objective(trial):
+    # 1. Ask Optuna for hyperparameters
+    hp1 = trial.suggest_...( ...)
+    hp2 = trial.suggest_...( ...)
+
+    # 2. Build model using these hyperparameters
+    model = build_model(trial, input_shape)
+
+    # 3. Train model (on train set, evaluate on validation set)
+    history = model.fit(...)
+
+    # 4. Compute scalar metric from history (e.g. best val_accuracy)
+    score = max(history.history["val_accuracy"])
+
+    # 5. Return that scalar
+    return score</code></pre>
+
+        <h3>6.2 Who uses the returned value?</h3>
+        <p>
+          The value you return from <code>objective()</code> is used by:
+        </p>
+        <ul>
+          <li><code>study.optimize()</code> behind the scenes.</li>
+          <li>Optuna uses this metric to decide how good a trial is.</li>
+          <li>Based on all returned values, it explores better hyperparameters next.</li>
+        </ul>
+        <p>
+          In other words: <strong>the returned metric is how the trial is judged</strong>.
+        </p>
+      </section>
+
+      <section id="metrics">
+        <h2>7. What to Return: Last vs Best Validation Accuracy</h2>
+
+        <h3>7.1 <code>history.history</code> Explained</h3>
+        <p>
+          When you call <code>model.fit()</code>, it returns a <code>History</code> object:
+        </p>
+        <ul>
+          <li><code>history.history</code> is a dict: metric name → list of values per epoch.</li>
+          <li><code>history.history["val_accuracy"]</code> = list of validation accuracies across epochs.</li>
+          <li><code>history.history["val_accuracy"][-1]</code> = validation accuracy in the last epoch.</li>
+        </ul>
+
+        <div class="card">
+          <div class="card-header">
+            <span>7.2 Last vs Max</span>
+            <span class="badge">Important Choice</span>
+          </div>
+          <p>
+            If you return:
+          </p>
+          <ul>
+            <li><code>history.history["val_accuracy"][-1]</code>: performance of the <strong>final epoch</strong>.</li>
+            <li><code>max(history.history["val_accuracy"])</code>: <strong>best epoch</strong> performance.</li>
+          </ul>
+          <p>
+            With EarlyStopping (restore_best_weights=True), training often stops near the best epoch, but it’s still safer to use the <strong>max</strong>.
+          </p>
+          <pre><code class="language-python">def objective(trial):
+    ...
+    history = model.fit(...)
+
+    # Option 1: last validation accuracy
+    # score = history.history["val_accuracy"][-1]
+
+    # Option 2 (recommended with EarlyStopping): best validation accuracy
+    score = max(history.history["val_accuracy"])
+    return score</code></pre>
+          <p>
+            The validation accuracy is computed over the <em>entire validation set</em>, not per-single sample.
+          </p>
+        </div>
+      </section>
+
+      <section id="samplers">
+        <h2>8. Samplers: TPE and Others</h2>
+        <p>
+          A <strong>sampler</strong> decides how Optuna chooses hyperparameters in each trial.
+        </p>
+        <ul>
+          <li><strong>TPE (Tree-structured Parzen Estimator)</strong>: default, Bayesian optimization.</li>
+          <li><strong>RandomSampler</strong>: pure random search.</li>
+          <li><strong>CmaEsSampler</strong>: CMA-ES (useful for continuous spaces).</li>
+        </ul>
+
+        <div class="card">
+          <div class="card-header">
+            <span>TPE Sampler in a Study</span>
+            <span class="badge">Bayesian Optimization</span>
+          </div>
+          <pre><code class="language-python">import optuna
+
+study = optuna.create_study(
+    direction="maximize",
+    sampler=optuna.samplers.TPESampler(seed=42)
+)
+study.optimize(objective, n_trials=40)</code></pre>
+          <p>
+            TPE learns from previous trials: it builds probability distributions of “good” vs “bad” hyperparameters and samples more often from the “good” area. This is why Optuna is usually faster than grid or random search.
+          </p>
+        </div>
+      </section>
+
+      <section id="pruning">
+        <h2>9. Pruning vs EarlyStopping</h2>
+
+        <h3>9.1 EarlyStopping (Keras)</h3>
+        <p>
+          <strong>EarlyStopping</strong> is used inside a single training run to stop when validation performance stops improving.
+        </p>
+        <pre><code class="language-python">from tensorflow.keras.callbacks import EarlyStopping
+
+es = EarlyStopping(
+    monitor="val_loss",
+    patience=10,
+    restore_best_weights=True
+)
+
+history = model.fit(..., callbacks=[es])</code></pre>
+        <p>
+          It saves time and reduces overfitting for <em>one model</em>.
+        </p>
+
+        <h3>9.2 Pruning (Optuna + TFKerasPruningCallback)</h3>
+        <p>
+          Pruning operates at the <strong>trial level</strong>:
+        </p>
+        <ul>
+          <li>If a trial’s validation metric is clearly worse than other trials early on, Optuna stops this entire trial.</li>
+          <li>Then it moves on to a new set of hyperparameters.</li>
+        </ul>
+        <pre><code class="language-python">from optuna.integration import TFKerasPruningCallback
+
+def objective(trial):
+    model = build_model(trial, input_shape)
+    pruning_cb = TFKerasPruningCallback(trial, monitor="val_accuracy")
+
+    history = model.fit(
+        X_train, y_train,
+        validation_data=(X_val, y_val),
+        epochs=80,
+        callbacks=[pruning_cb],
+        verbose=0
+    )
+
+    return max(history.history["val_accuracy"])</code></pre>
+
+        <div class="callout">
+          <strong>Difference:</strong><br>
+          EarlyStopping: stops <em>this model’s training</em> early.<br>
+          Pruning: stops <em>this whole trial</em> early and lets Optuna start another trial.
+        </div>
+      </section>
+
+      <section id="keras-example">
+        <h2>10. Keras / BiLSTM + Optuna Example</h2>
+
+        <p>Below is a simplified BiLSTM tuning pipeline similar to your gait model.</p>
+
+        <pre><code class="language-python">import optuna
+import tensorflow as tf
+from tensorflow.keras.layers import Input, LSTM, Bidirectional, Dropout, Dense, GlobalAveragePooling1D
+from tensorflow.keras.models import Model
+
+def build_model_optuna(trial, input_shape):
+    lstm1 = trial.suggest_categorical("lstm_units_1", [16, 32, 64, 96, 128])
+    lstm2 = trial.suggest_categorical("lstm_units_2", [8, 16, 24, 32, 48])
+    dense_units = trial.suggest_categorical("dense_units", [16, 32, 48, 64])
+    dropout = trial.suggest_float("dropout_rate", 0.2, 0.5)
+    use_second = trial.suggest_categorical("use_second_lstm", [True, False])
+    lr = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
+    opt_choice = trial.suggest_categorical("optimizer_choice", ["adam", "rmsprop"])
+
+    inputs = Input(shape=input_shape)
+    x = Bidirectional(LSTM(lstm1, return_sequences=True))(inputs)
+    x = Dropout(dropout)(x)
+
+    if use_second:
+        x = Bidirectional(LSTM(lstm2, return_sequences=False))(x)
+    else:
+        x = GlobalAveragePooling1D()(x)
+
+    x = Dropout(dropout)(x)
+    x = Dense(dense_units, activation="relu")(x)
+    x = Dropout(dropout)(x)
+    outputs = Dense(1, activation="sigmoid")(x)
+    model = Model(inputs, outputs)
+
+    if opt_choice == "adam":
+        opt = tf.keras.optimizers.Adam(learning_rate=lr)
+    else:
+        opt = tf.keras.optimizers.RMSprop(learning_rate=lr)
+
+    model.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
+    return model
+
+def objective(trial):
+    model = build_model_optuna(trial, X_train_res.shape[1:])
+    pruning = TFKerasPruningCallback(trial, monitor="val_accuracy")
+
+    history = model.fit(
+        X_train_res, y_train_res,
+        validation_data=(X_val, y_val),
+        epochs=80,
+        batch_size=trial.suggest_categorical("batch_size", [16, 32, 64]),
+        callbacks=[EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True),
+                   pruning],
+        verbose=0,
+        class_weight=class_weight
+    )
+
+    return max(history.history["val_accuracy"])
+
+study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=42))
+study.optimize(objective, n_trials=40)</code></pre>
+      </section>
+
+      <section id="best-model">
+        <h2>11. Using Best Hyperparameters for Final Training</h2>
+
+        <p>
+          After <code>study.optimize()</code>, you should rebuild a <strong>fresh model</strong> using the best hyperparameters, and then train it properly (with callbacks).
+        </p>
+
+        <pre><code class="language-python">best_params = study.best_trial.params
+print("Best params:", best_params)
+
+best_batch = best_params["batch_size"]
+best_model = build_model_optuna(study.best_trial, X_train_res.shape[1:])
+
+callbacks = [
+    EarlyStopping(monitor="val_loss", patience=12, restore_best_weights=True),
+    ModelCheckpoint("Model_biLSTM_optuna.keras", monitor="val_loss", save_best_only=True),
+    ReduceLROnPlateau(monitor="val_loss", patience=6, factor=0.5, min_lr=1e-6)
+]
+
+best_model.fit(
+    X_train_res, y_train_res,
+    validation_data=(X_val, y_val),
+    batch_size=best_batch,
+    epochs=150,
+    callbacks=callbacks,
+    class_weight=class_weight,
+    verbose=1
+)
+
+loss, acc = best_model.evaluate(X_test, y_test)
+print("Test Accuracy:", acc)</code></pre>
+
+        <div class="callout">
+          Note: During tuning, we train multiple (cheaper) models to explore the space. After that, we train <strong>one final full model</strong> using the best hyperparameters.
+        </div>
+      </section>
+
+      <section id="repro">
+        <h2>12. Reproducibility & Seeds</h2>
+
+        <p>For stable Optuna results (especially on GPU), set seeds and deterministic options:</p>
+
+        <pre><code class="language-python">import os, random, numpy as np, tensorflow as tf
+
+SEED = 42
+
+def set_seed():
+    tf.random.set_seed(SEED)
+    tf.keras.utils.set_random_seed(SEED)
+    np.random.seed(SEED)
+    random.seed(SEED)
+    os.environ["PYTHONHASHSEED"] = str(SEED)
+    os.environ["TF_DETERMINISTIC_OPS"] = "1"
+    os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
+    tf.config.experimental.enable_op_determinism()
+
+set_seed()</code></pre>
+
+        <p>
+          This reduces randomness and makes hyperparameter search more repeatable.
+        </p>
+      </section>
+
+      <section id="pitfalls">
+        <h2>13. Common Pitfalls in Hyperparameter Tuning</h2>
+
+        <div class="card">
+          <div class="card-header">
+            <span>Frequent Issues</span>
+            <span class="badge badge-danger">Pitfalls</span>
+          </div>
+          <ul>
+            <li>
+              <strong>Data leakage:</strong> Tuning hyperparameters using test data. Always keep a separate test set untouched until the very end.
+            </li>
+            <li>
+              <strong>Too few trials:</strong> With very complex models, 10–20 trials might not be enough. Try 40–100 trials if you can.
+            </li>
+            <li>
+              <strong>Too many hyperparameters:</strong> Huge search spaces make optimization harder. Start with a small but meaningful space.
+            </li>
+            <li>
+              <strong>Ignoring batch size:</strong> Batch size affects convergence and generalization; consider tuning it too.
+            </li>
+            <li>
+              <strong>Returning the wrong metric:</strong> Be sure the returned value matches your goal (e.g., maximizing validation accuracy).
+            </li>
+            <li>
+              <strong>Inconsistent final training:</strong> If you don’t use the tuned batch size / hyperparameters / callbacks in final training, performance might drop.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="advanced">
+        <h2>14. Advanced Features & Visualization</h2>
+
+        <h3>14.1 Saving & Loading a Study</h3>
+        <pre><code class="language-python">study = optuna.create_study(
+    direction="maximize",
+    storage="sqlite:///optuna_study.db",
+    study_name="bilstm_study",
+    load_if_exists=True
+)</code></pre>
+
+        <h3>14.2 Visualization</h3>
+        <pre><code class="language-python">import optuna.visualization as vis
+
+vis.plot_optimization_history(study).show()
+vis.plot_param_importances(study).show()
+vis.plot_parallel_coordinate(study).show()</code></pre>
+        <p>
+          These interactive plots help you see:
+        </p>
+        <ul>
+          <li>How validation accuracy improved over trials.</li>
+          <li>Which hyperparameters are most important.</li>
+          <li>How hyperparameters interact.</li>
+        </ul>
+      </section>
+
+      <section id="checklist">
+        <h2>15. Practical Checklist</h2>
+        <ul>
+          <li>✅ Define a clean train / validation / test split.</li>
+          <li>✅ Decide your objective metric (e.g., maximize <code>val_accuracy</code>).</li>
+          <li>✅ Start with a reasonable search space (don’t go too crazy at first).</li>
+          <li>✅ Implement <code>objective(trial)</code> that:
+            <ul>
+              <li>Builds a model from <code>trial</code> hyperparameters.</li>
+              <li>Trains with EarlyStopping + (optional) TFKerasPruningCallback.</li>
+              <li>Returns <strong>best</strong> validation metric.</li>
+            </ul>
+          </li>
+          <li>✅ Run <code>study.optimize(...)</code> with sufficient <code>n_trials</code>.</li>
+          <li>✅ Rebuild a fresh model with <code>study.best_trial</code> and train fully.</li>
+          <li>✅ Evaluate on test set only at the end.</li>
+          <li>✅ Save the final model and best hyperparameters.</li>
+        </ul>
+
+        <p>
+          With this, you have a full understanding of Optuna’s fundamentals and how to use it in deep learning projects (like your BiLSTM gait classifier). You can extend this template to more complex architectures, add attention, or use nested cross-validation if needed.
+        </p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

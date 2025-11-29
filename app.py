@@ -27,6 +27,8 @@ TOPICS = {
              'description': 'Classification and regression'},
             {'id': 'unsupervised-learning', 'title': 'Unsupervised Learning',
              'description': 'Clustering and dimensionality reduction'},
+            {'id': 'train-test', 'title': 'Data Splits & Data Leakage',
+             'description': 'Train / Validation / Test Splits & Data Leakage – Practical Guide'},
             {'id': 'model-evaluation', 'title': 'Model Evaluation',
              'description': 'Metrics, cross-validation, confusion matrix'},
             {'id': 'feature-engineering', 'title': 'Feature Engineering',
@@ -54,6 +56,8 @@ TOPICS = {
              'description': 'From randomness to determinism in TensorFlow'},
             {'id': 'transfer-learning', 'title': 'Transfer Learning',
              'description': 'Pre-trained models and fine-tuning'},
+            {'id': 'optuna', 'title': 'Optuna',
+             'description': 'Complete Guide to Hyperparameter Tuning with Optuna'},
         ]
     },
     'dpp': {
@@ -158,11 +162,16 @@ def content_detail(topic_id, subtopic_id):
                 return render_template('segmentation_embedding.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             elif subtopic_id=="reproducibility":
                 return render_template("/dl/reproducibility.html",topic=topic,subtopic=subtopic,topic_id=topic_id)
+            elif subtopic_id=="optuna":
+                return render_template("/dl/optuna.html",topic=topic,subtopic=subtopic,topic_id=topic_id)
 
             ## Stat
             elif subtopic_id == 'bias-variance':
                 return render_template("/stat/bias_variance_tradeoff_note.html", topic=topic, subtopic=subtopic,
                                        topic_id=topic_id)
+            ### ML
+            elif subtopic_id=="train-test":
+                return render_template("/ml/train_test.html",topic=topic,subtopic=subtopic, topic_id=topic_id)
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
     return "Content not found", 404
 
