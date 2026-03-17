@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RAG:Retrieval-Augmented Generation</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,700;0,900;1,300;1,700&family=DM+Mono:wght@300;400;500&family=Outfit:wght@200;300;400;600&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════════
+   RESET + ROOT
+═══════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0a0a0f;
+  --paper:#f4f0e8;
+  --paper2:#ede8db;
+  --accent:#e85d2f;
+  --accent2:#2563eb;
+  --accent3:#059669;
+  --accent4:#7c3aed;
+  --gold:#c9952a;
+  --dim:rgba(10,10,15,.45);
+  --border:rgba(10,10,15,.12);
+  --mono:'DM Mono',monospace;
+  --serif:'Fraunces',serif;
+  --sans:'Outfit',sans-serif;
+}
+
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  overflow-x:hidden;
+  line-height:1.7;
+}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px}
+
+/* ═══════════════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════════════ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:16px 48px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(244,240,232,.92);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{
+  font-family:var(--serif);
+  font-size:18px;font-weight:900;
+  letter-spacing:-0.5px;
+  color:var(--ink);
+}
+.nav-logo span{color:var(--accent)}
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{
+  font-size:12px;font-weight:400;
+  letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--dim);text-decoration:none;
+  transition:color .2s;
+}
+.nav-links a:hover{color:var(--ink)}
+
+/* ═══════════════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════════════ */
+#hero{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  align-items:center;
+  padding:120px 48px 80px;
+  gap:80px;
+  position:relative;
+  overflow:hidden;
+}
+
+/* big decorative letter */
+#hero::before{
+  content:'RAG';
+  position:absolute;
+  right:-40px;top:50%;transform:translateY(-50%);
+  font-family:var(--serif);
+  font-size:clamp(180px,22vw,320px);
+  font-weight:900;
+  color:transparent;
+  -webkit-text-stroke:1px rgba(10,10,15,.06);
+  pointer-events:none;
+  line-height:1;
+  letter-spacing:-8px;
+}
+
+.hero-left{}
+.hero-eyebrow{
+  font-family:var(--mono);
+  font-size:11px;letter-spacing:3px;
+  color:var(--accent);
+  text-transform:uppercase;
+  margin-bottom:24px;
+  display:flex;align-items:center;gap:12px;
+  opacity:0;animation:rise .7s .1s ease forwards;
+}
+.hero-eyebrow::before{
+  content:'';display:block;
+  width:28px;height:1px;background:var(--accent);
+}
+
+h1.hero-title{
+  font-family:var(--serif);
+  font-size:clamp(42px,5vw,72px);
+  font-weight:900;
+  line-height:1.08;
+  letter-spacing:-2px;
+  margin-bottom:28px;
+  opacity:0;animation:rise .7s .2s ease forwards;
+}
+h1.hero-title em{
+  font-style:italic;color:var(--accent);
+}
+
+.hero-desc{
+  font-size:17px;font-weight:300;
+  color:var(--dim);line-height:1.85;
+  max-width:480px;
+  margin-bottom:48px;
+  opacity:0;animation:rise .7s .3s ease forwards;
+}
+
+.hero-cta{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--ink);color:var(--paper);
+  font-family:var(--mono);font-size:11px;
+  letter-spacing:2px;text-transform:uppercase;
+  padding:14px 28px;border-radius:2px;
+  text-decoration:none;
+  transition:all .2s;
+  opacity:0;animation:rise .7s .4s ease forwards;
+}
+.hero-cta:hover{background:var(--accent);transform:translateY(-2px)}
+.hero-cta-arrow{transition:transform .2s}
+.hero-cta:hover .hero-cta-arrow{transform:translateX(4px)}
+
+/* hero right — animated diagram */
+.hero-right{
+  position:relative;
+  opacity:0;animation:rise .8s .3s ease forwards;
+}
+
+.hero-diagram{
+  position:relative;
+  background:var(--paper2);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:32px;
+  overflow:hidden;
+}
+.hero-diagram::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));
+}
+
+.hd-label{
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:3px;color:var(--dim);
+  text-transform:uppercase;margin-bottom:24px;
+}
+
+.hd-flow{
+  display:flex;flex-direction:column;gap:0;
+}
+
+.hd-step{
+  display:flex;align-items:center;gap:16px;
+  padding:12px 16px;
+  border-radius:4px;
+  border:1px solid transparent;
+  transition:all .3s;
+  cursor:default;
+  position:relative;
+}
+.hd-step:hover{
+  background:rgba(10,10,15,.04);
+  border-color:var(--border);
+}
+
+.hd-step-dot{
+  width:32px;height:32px;border-radius:50%;
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;font-weight:500;
+}
+.dot-orange{background:rgba(232,93,47,.12);color:var(--accent)}
+.dot-blue  {background:rgba(37,99,235,.12); color:var(--accent2)}
+.dot-green {background:rgba(5,150,105,.12); color:var(--accent3)}
+.dot-purple{background:rgba(124,58,237,.12);color:var(--accent4)}
+.dot-gold  {background:rgba(201,149,42,.12); color:var(--gold)}
+
+.hd-step-text{}
+.hd-step-title{
+  font-size:13px;font-weight:600;color:var(--ink);
+}
+.hd-step-sub{
+  font-family:var(--mono);font-size:10px;color:var(--dim);
+}
+
+.hd-connector{
+  display:flex;padding-left:31px;
+}
+.hd-connector-line{
+  width:1px;height:20px;
+  background:linear-gradient(to bottom,var(--border),transparent);
+  margin-left:15px;
+}
+
+/* ═══════════════════════════════════════════════════
+   SECTION BASE
+═══════════════════════════════════════════════════ */
+section{padding:100px 48px;max-width:1200px;margin:0 auto;}
+
+.sec-eyebrow{
+  font-family:var(--mono);
+  font-size:10px;letter-spacing:4px;
+  color:var(--accent);text-transform:uppercase;
+  margin-bottom:16px;
+  display:flex;align-items:center;gap:12px;
+}
+.sec-eyebrow::before{
+  content:'';width:24px;height:1px;background:var(--accent);
+}
+
+.sec-title{
+  font-family:var(--serif);
+  font-size:clamp(32px,4vw,52px);
+  font-weight:900;letter-spacing:-1.5px;
+  line-height:1.1;margin-bottom:20px;
+}
+.sec-title em{font-style:italic;color:var(--accent)}
+
+.sec-body{
+  font-size:16px;font-weight:300;
+  color:var(--dim);line-height:1.85;
+  max-width:640px;margin-bottom:56px;
+}
+
+/* reveal */
+.reveal{
+  opacity:0;transform:translateY(28px);
+  transition:opacity .65s,transform .65s;
+}
+.reveal.on{opacity:1;transform:none}
+
+/* ═══════════════════════════════════════════════════
+   WHAT IS RAG
+═══════════════════════════════════════════════════ */
+#what{
+  background:var(--ink);
+  color:var(--paper);
+  max-width:100%;
+  padding:100px 48px;
+}
+#what .inner{max-width:1200px;margin:0 auto}
+#what .sec-eyebrow{color:#e85d2f}
+#what .sec-eyebrow::before{background:#e85d2f}
+#what .sec-title em{color:#e85d2f}
+#what .sec-body{color:rgba(244,240,232,.5)}
+
+.what-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:48px;
+  align-items:start;
+}
+
+.what-left{}
+
+.problem-box{
+  background:rgba(244,240,232,.04);
+  border:1px solid rgba(244,240,232,.1);
+  border-radius:4px;
+  padding:28px;
+  margin-top:40px;
+  position:relative;
+  overflow:hidden;
+}
+.problem-box::before{
+  content:'';position:absolute;
+  left:0;top:0;bottom:0;width:3px;
+  background:var(--accent);
+}
+.problem-label{
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:3px;color:var(--accent);
+  text-transform:uppercase;margin-bottom:12px;
+}
+.problem-text{
+  font-size:14px;line-height:1.75;
+  color:rgba(244,240,232,.6);
+  font-weight:300;
+}
+
+.what-right{
+  display:flex;flex-direction:column;gap:20px;
+  padding-top:20px;
+}
+
+.concept-card{
+  background:rgba(244,240,232,.04);
+  border:1px solid rgba(244,240,232,.08);
+  border-radius:4px;
+  padding:24px;
+  transition:border-color .3s,background .3s;
+}
+.concept-card:hover{
+  background:rgba(244,240,232,.07);
+  border-color:rgba(244,240,232,.18);
+}
+.cc-header{
+  display:flex;align-items:center;gap:14px;
+  margin-bottom:10px;
+}
+.cc-icon{
+  width:36px;height:36px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.cc-icon.r{background:rgba(232,93,47,.15)}
+.cc-icon.a{background:rgba(37,99,235,.15)}
+.cc-icon.g{background:rgba(5,150,105,.15)}
+.cc-title{
+  font-family:var(--serif);font-weight:700;
+  font-size:16px;color:var(--paper);
+}
+.cc-body{
+  font-size:13px;font-weight:300;
+  color:rgba(244,240,232,.5);line-height:1.7;
+}
+
+/* ═══════════════════════════════════════════════════
+   PIPELINE — INTERACTIVE
+═══════════════════════════════════════════════════ */
+#pipeline{background:var(--paper)}
+
+.pipeline-wrap{
+  position:relative;
+}
+
+/* stepper tabs */
+.pipeline-tabs{
+  display:flex;gap:4px;margin-bottom:40px;
+  background:var(--paper2);
+  border-radius:4px;padding:4px;
+  border:1px solid var(--border);
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.pipeline-tabs::-webkit-scrollbar{display:none}
+
+.ptab{
+  flex:1;min-width:90px;
+  padding:10px 16px;
+  border:none;background:transparent;
+  cursor:pointer;border-radius:3px;
+  transition:all .2s;
+  text-align:center;
+}
+.ptab-num{
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:2px;color:var(--dim);
+  display:block;margin-bottom:4px;
+}
+.ptab-name{
+  font-size:11px;font-weight:600;
+  color:var(--dim);
+  white-space:nowrap;
+}
+.ptab.active{
+  background:var(--ink);
+}
+.ptab.active .ptab-num{color:rgba(244,240,232,.4)}
+.ptab.active .ptab-name{color:var(--paper)}
+
+/* pipeline panels */
+.pipeline-panels{}
+.ppanel{display:none}
+.ppanel.active{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
+
+.ppanel-left{}
+.ppanel-tag{
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:3px;text-transform:uppercase;
+  padding:4px 12px;border-radius:2px;
+  display:inline-block;margin-bottom:20px;
+}
+.tag-orange{background:rgba(232,93,47,.1);color:var(--accent)}
+.tag-blue  {background:rgba(37,99,235,.1); color:var(--accent2)}
+.tag-green {background:rgba(5,150,105,.1); color:var(--accent3)}
+.tag-purple{background:rgba(124,58,237,.1);color:var(--accent4)}
+.tag-gold  {background:rgba(201,149,42,.1); color:var(--gold)}
+
+.ppanel-title{
+  font-family:var(--serif);
+  font-size:clamp(28px,3vw,40px);
+  font-weight:900;letter-spacing:-1px;
+  line-height:1.1;margin-bottom:16px;
+}
+.ppanel-desc{
+  font-size:15px;font-weight:300;
+  color:var(--dim);line-height:1.8;
+  margin-bottom:28px;
+}
+
+.ppanel-details{
+  display:flex;flex-direction:column;gap:10px;
+}
+.pd-item{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:12px 16px;
+  background:var(--paper2);
+  border-radius:4px;
+  border-left:2px solid var(--border);
+  transition:border-color .2s;
+}
+.pd-item:hover{border-left-color:var(--accent)}
+.pd-bullet{
+  font-family:var(--mono);font-size:9px;
+  color:var(--accent);margin-top:3px;flex-shrink:0;
+}
+.pd-text{font-size:13px;font-weight:300;color:var(--dim)}
+.pd-text strong{color:var(--ink);font-weight:600}
+
+/* pipeline visual */
+.ppanel-right{}
+.pvis{
+  background:var(--paper2);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:28px;
+  min-height:340px;
+  position:relative;
+  overflow:hidden;
+}
+.pvis::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:2px;
+}
+.pvis-orange::before{background:var(--accent)}
+.pvis-blue::before  {background:var(--accent2)}
+.pvis-green::before {background:var(--accent3)}
+.pvis-purple::before{background:var(--accent4)}
+.pvis-gold::before  {background:var(--gold)}
+
+.pvis-label{
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:3px;color:var(--dim);
+  text-transform:uppercase;margin-bottom:20px;
+}
+
+/* doc ingestion visual */
+.doc-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+  margin-bottom:16px;
+}
+.doc-card{
+  background:var(--paper);
+  border:1px solid var(--border);
+  border-radius:3px;
+  padding:10px 12px;
+  font-family:var(--mono);font-size:9px;
+  color:var(--dim);
+  display:flex;flex-direction:column;gap:4px;
+  transition:border-color .3s;
+}
+.doc-card:hover{border-color:var(--accent)}
+.doc-type{
+  font-size:8px;letter-spacing:2px;
+  color:var(--accent);text-transform:uppercase;
+}
+.doc-name{color:var(--ink);font-size:10px}
+.doc-size{font-size:8px}
+
+.doc-arrow{
+  text-align:center;font-size:18px;
+  color:var(--dim);margin:8px 0;
+}
+
+.chunk-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+}
+.chunk{
+  height:40px;border-radius:3px;
+  background:rgba(232,93,47,.1);
+  border:1px solid rgba(232,93,47,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:8px;color:var(--accent);
+  animation:chunk-pulse 2s ease-in-out infinite;
+}
+.chunk:nth-child(2){animation-delay:.2s}
+.chunk:nth-child(3){animation-delay:.4s}
+.chunk:nth-child(4){animation-delay:.6s}
+.chunk:nth-child(5){animation-delay:.3s}
+.chunk:nth-child(6){animation-delay:.5s}
+.chunk:nth-child(7){animation-delay:.1s}
+.chunk:nth-child(8){animation-delay:.7s}
+@keyframes chunk-pulse{
+  0%,100%{opacity:.5}50%{opacity:1}
+}
+
+/* embedding visual */
+.embed-canvas-wrap{
+  width:100%;height:240px;position:relative;
+}
+#embed-canvas{width:100%;height:100%;display:block}
+
+/* retrieval visual */
+.query-box{
+  background:rgba(37,99,235,.08);
+  border:1px solid rgba(37,99,235,.2);
+  border-radius:4px;padding:12px 16px;
+  margin-bottom:16px;
+  font-family:var(--mono);font-size:12px;
+  color:var(--accent2);
+}
+.query-label{
+  font-size:8px;letter-spacing:2px;
+  color:rgba(37,99,235,.5);margin-bottom:4px;
+}
+
+.result-list{
+  display:flex;flex-direction:column;gap:6px;
+}
+.result-item{
+  background:var(--paper);
+  border:1px solid var(--border);
+  border-left:3px solid;
+  border-radius:0 4px 4px 0;
+  padding:10px 14px;
+  display:flex;justify-content:space-between;
+  align-items:center;
+  font-size:12px;
+  transition:transform .2s;
+}
+.result-item:hover{transform:translateX(4px)}
+.result-text{color:var(--dim);font-weight:300}
+.result-score{
+  font-family:var(--mono);font-size:10px;
+  padding:2px 8px;border-radius:2px;
+}
+
+/* generation visual */
+.gen-wrap{display:flex;flex-direction:column;gap:12px}
+.gen-context{
+  background:rgba(5,150,105,.06);
+  border:1px solid rgba(5,150,105,.15);
+  border-radius:4px;padding:14px;
+  font-family:var(--mono);font-size:10px;
+  color:rgba(5,150,105,.8);line-height:1.6;
+}
+.gen-plus{
+  text-align:center;color:var(--dim);
+  font-size:20px;font-family:var(--mono);
+}
+.gen-prompt{
+  background:rgba(124,58,237,.06);
+  border:1px solid rgba(124,58,237,.15);
+  border-radius:4px;padding:14px;
+  font-family:var(--mono);font-size:10px;
+  color:rgba(124,58,237,.8);line-height:1.6;
+}
+.gen-arrow{text-align:center;color:var(--dim);font-size:20px}
+.gen-answer{
+  background:var(--paper);
+  border:1px solid var(--border);
+  border-left:3px solid var(--accent3);
+  border-radius:0 4px 4px 0;
+  padding:14px;
+  font-size:12px;color:var(--ink);
+  font-style:italic;line-height:1.6;
+}
+
+/* response visual */
+.resp-wrap{display:flex;flex-direction:column;gap:12px}
+.resp-json{
+  background:rgba(10,10,15,.96);
+  border-radius:4px;padding:20px;
+  font-family:var(--mono);font-size:11px;
+  line-height:1.8;overflow-x:auto;
+}
+.rj-key{color:#93c5fd}
+.rj-str{color:#86efac}
+.rj-num{color:#fda4af}
+.rj-brace{color:rgba(244,240,232,.3)}
+.resp-label{
+  font-family:var(--mono);font-size:8px;
+  letter-spacing:2px;color:var(--dim);
+  text-align:center;
+}
+
+/* ═══════════════════════════════════════════════════
+   VS SECTION
+═══════════════════════════════════════════════════ */
+#vs{background:var(--paper2)}
+.vs-grid{
+  display:grid;grid-template-columns:1fr auto 1fr;
+  gap:24px;align-items:start;
+}
+.vs-col{
+  background:var(--paper);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:32px;
+}
+.vs-col.highlight{
+  background:var(--ink);
+  border-color:transparent;
+}
+.vs-badge{
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:3px;text-transform:uppercase;
+  padding:4px 12px;border-radius:2px;
+  display:inline-block;margin-bottom:20px;
+}
+.badge-red  {background:rgba(239,68,68,.1);color:#ef4444}
+.badge-green{background:rgba(5,150,105,.15);color:#059669}
+.vs-col-title{
+  font-family:var(--serif);font-size:22px;
+  font-weight:700;margin-bottom:8px;
+}
+.vs-col.highlight .vs-col-title{color:var(--paper)}
+.vs-col-sub{
+  font-size:13px;color:var(--dim);
+  margin-bottom:24px;font-weight:300;
+}
+.vs-col.highlight .vs-col-sub{color:rgba(244,240,232,.4)}
+.vs-list{
+  list-style:none;
+  display:flex;flex-direction:column;gap:10px;
+}
+.vs-list li{
+  display:flex;gap:10px;align-items:flex-start;
+  font-size:13px;font-weight:300;
+}
+.vs-col.highlight .vs-list li{color:rgba(244,240,232,.65)}
+.vs-check{flex-shrink:0;font-size:13px}
+.vs-middle{
+  display:flex;align-items:center;justify-content:center;
+  padding-top:80px;
+}
+.vs-divider-text{
+  font-family:var(--serif);font-size:28px;
+  font-weight:900;color:var(--dim);
+  writing-mode:vertical-rl;
+  letter-spacing:4px;
+}
+
+/* ═══════════════════════════════════════════════════
+   USE CASES
+═══════════════════════════════════════════════════ */
+#usecases{background:var(--paper)}
+.uc-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:20px;
+}
+.uc-card{
+  padding:28px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  background:var(--paper2);
+  transition:all .3s;
+  cursor:default;
+}
+.uc-card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 12px 40px rgba(10,10,15,.08);
+  border-color:rgba(10,10,15,.2);
+}
+.uc-num{
+  font-family:var(--mono);font-size:32px;
+  font-weight:500;color:rgba(10,10,15,.06);
+  margin-bottom:12px;line-height:1;
+}
+.uc-title{
+  font-family:var(--serif);font-size:18px;
+  font-weight:700;margin-bottom:8px;
+}
+.uc-body{
+  font-size:13px;color:var(--dim);
+  font-weight:300;line-height:1.7;
+}
+.uc-tag{
+  display:inline-block;margin-top:16px;
+  font-family:var(--mono);font-size:8px;
+  letter-spacing:2px;text-transform:uppercase;
+  padding:3px 10px;border-radius:2px;
+  background:rgba(10,10,15,.06);
+  color:var(--dim);
+}
+
+/* ═══════════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════════ */
+footer{
+  background:var(--ink);
+  color:var(--paper);
+  padding:64px 48px;
+  text-align:center;
+}
+.footer-title{
+  font-family:var(--serif);font-size:48px;
+  font-weight:900;letter-spacing:-2px;
+  margin-bottom:12px;
+}
+.footer-title span{color:var(--accent)}
+.footer-sub{
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:3px;
+  color:rgba(244,240,232,.3);
+  margin-bottom:48px;
+}
+.footer-copy{
+  font-size:12px;color:rgba(244,240,232,.2);
+  font-family:var(--mono);
+}
+
+/* ═══════════════════════════════════════════════════
+   DIVIDER
+═══════════════════════════════════════════════════ */
+.full-divider{
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--border),transparent);
+  margin:0 48px;
+}
+
+/* ═══════════════════════════════════════════════════
+   KEYFRAMES
+═══════════════════════════════════════════════════ */
+@keyframes rise{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:none}
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════ */
+@media(max-width:768px){
+  nav{padding:14px 20px}
+  .nav-links{display:none}
+  #hero{grid-template-columns:1fr;padding:100px 20px 60px;gap:40px}
+  #hero::before{display:none}
+  section{padding:64px 20px}
+  #what{padding:64px 20px}
+  .what-grid,.ppanel.active,.vs-grid,.uc-grid{grid-template-columns:1fr}
+  .vs-middle{display:none}
+  .pipeline-tabs{flex-wrap:nowrap}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Under<span>RAG</span></div>
+  <ul class="nav-links">
+    <li><a href="#what">What is RAG</a></li>
+    <li><a href="#pipeline">Pipeline</a></li>
+    <li><a href="#vs">RAG vs LLM</a></li>
+    <li><a href="#usecases">Use Cases</a></li>
+  </ul>
+</nav>
+
+<!-- ══════════ HERO ══════════ -->
+<section id="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">A Visual Deep Dive</div>
+    <h1 class="hero-title">
+      What is<br/><em>Retrieval&#8209;Augmented</em><br/>Generation?
+    </h1>
+    <p class="hero-desc">
+      RAG is a technique that gives language models a long-term memory —
+      letting them answer questions grounded in <em>your</em> documents,
+      not just what they learned during training.
+    </p>
+    <a href="#pipeline" class="hero-cta">
+      Explore the Pipeline
+      <span class="hero-cta-arrow">→</span>
+    </a>
+  </div>
+
+  <div class="hero-right">
+    <div class="hero-diagram">
+      <div class="hd-label">RAG at a glance</div>
+      <div class="hd-flow">
+        <div class="hd-step">
+          <div class="hd-step-dot dot-orange">📄</div>
+          <div class="hd-step-text">
+            <div class="hd-step-title">Your Documents</div>
+            <div class="hd-step-sub">PDFs, DOCX, text files</div>
+          </div>
+        </div>
+        <div class="hd-connector"><div class="hd-connector-line"></div></div>
+        <div class="hd-step">
+          <div class="hd-step-dot dot-blue">🔢</div>
+          <div class="hd-step-text">
+            <div class="hd-step-title">Chunked & Embedded</div>
+            <div class="hd-step-sub">Split into pieces → vectors</div>
+          </div>
+        </div>
+        <div class="hd-connector"><div class="hd-connector-line"></div></div>
+        <div class="hd-step">
+          <div class="hd-step-dot dot-green">🔍</div>
+          <div class="hd-step-text">
+            <div class="hd-step-title">Semantic Retrieval</div>
+            <div class="hd-step-sub">Query finds relevant chunks</div>
+          </div>
+        </div>
+        <div class="hd-connector"><div class="hd-connector-line"></div></div>
+        <div class="hd-step">
+          <div class="hd-step-dot dot-purple">🤖</div>
+          <div class="hd-step-text">
+            <div class="hd-step-title">LLM Generates Answer</div>
+            <div class="hd-step-sub">Grounded in retrieved context</div>
+          </div>
+        </div>
+        <div class="hd-connector"><div class="hd-connector-line"></div></div>
+        <div class="hd-step">
+          <div class="hd-step-dot dot-gold">✅</div>
+          <div class="hd-step-text">
+            <div class="hd-step-title">Cited Response</div>
+            <div class="hd-step-sub">Answer + source evidence</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="full-divider"></div>
+
+<!-- ══════════ WHAT IS RAG ══════════ -->
+<div id="what">
+  <div class="inner">
+    <section style="padding:0;max-width:100%">
+      <div class="what-grid">
+        <div class="what-left">
+          <div class="sec-eyebrow reveal">The Problem</div>
+          <h2 class="sec-title reveal" style="color:var(--paper)">LLMs have a <em>knowledge problem</em></h2>
+          <p class="sec-body reveal">
+            Large language models are trained on data up to a certain date. They can't read your internal documents, latest reports, or private knowledge bases. Ask them about your company's Q3 policy and they'll guess — or hallucinate.
+          </p>
+          <div class="problem-box reveal">
+            <div class="problem-label">The core limitation</div>
+            <div class="problem-text">
+              "What is in our Q3 2024 earnings report?"<br/><br/>
+              <strong style="color:#ef4444">LLM alone:</strong> Makes up numbers. No access to your actual report.<br/><br/>
+              <strong style="color:#22c55e">LLM + RAG:</strong> Finds your actual report, reads the right sections, cites them.
+            </div>
+          </div>
+        </div>
+
+        <div class="what-right reveal">
+          <div class="concept-card">
+            <div class="cc-header">
+              <div class="cc-icon r">R</div>
+              <div class="cc-title">Retrieval</div>
+            </div>
+            <div class="cc-body">Given a user query, search a vector database to find the most semantically similar document chunks. Not keyword search — meaning-based search.</div>
+          </div>
+          <div class="concept-card">
+            <div class="cc-header">
+              <div class="cc-icon a">A</div>
+              <div class="cc-title">Augmented</div>
+            </div>
+            <div class="cc-body">Take those retrieved chunks and add them to the LLM's prompt as context. The model now "sees" your documents before answering.</div>
+          </div>
+          <div class="concept-card">
+            <div class="cc-header">
+              <div class="cc-icon g">G</div>
+              <div class="cc-title">Generation</div>
+            </div>
+            <div class="cc-body">The LLM generates a response grounded in the retrieved context — not from memory or training data. Every claim is traceable.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="full-divider"></div>
+
+<!-- ══════════ PIPELINE ══════════ -->
+<section id="pipeline">
+  <div class="sec-eyebrow reveal">Step by Step</div>
+  <h2 class="sec-title reveal">The RAG <em>Pipeline</em></h2>
+  <p class="sec-body reveal">Click each stage to explore what happens under the hood — from raw documents to a grounded answer.</p>
+
+  <div class="pipeline-wrap reveal">
+    <div class="pipeline-tabs" id="ptabs">
+      <button class="ptab active" data-panel="0">
+        <span class="ptab-num">01</span>
+        <span class="ptab-name">Ingestion</span>
+      </button>
+      <button class="ptab" data-panel="1">
+        <span class="ptab-num">02</span>
+        <span class="ptab-name">Chunking</span>
+      </button>
+      <button class="ptab" data-panel="2">
+        <span class="ptab-num">03</span>
+        <span class="ptab-name">Embedding</span>
+      </button>
+      <button class="ptab" data-panel="3">
+        <span class="ptab-num">04</span>
+        <span class="ptab-name">Retrieval</span>
+      </button>
+      <button class="ptab" data-panel="4">
+        <span class="ptab-num">05</span>
+        <span class="ptab-name">Generation</span>
+      </button>
+      <button class="ptab" data-panel="5">
+        <span class="ptab-num">06</span>
+        <span class="ptab-name">Response</span>
+      </button>
+    </div>
+
+    <div class="pipeline-panels" id="ppanels">
+
+      <!-- 0: Ingestion -->
+      <div class="ppanel active" id="pp-0">
+        <div class="ppanel-left">
+          <span class="ppanel-tag tag-orange">Stage 01</span>
+          <div class="ppanel-title">Document Ingestion</div>
+          <div class="ppanel-desc">The pipeline starts by loading your raw documents. RAG is format-agnostic — PDFs, Word docs, plain text, HTML pages, code files — any source of knowledge can be indexed.</div>
+          <div class="ppanel-details">
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>PDF Loader</strong> — extracts text from each page, preserves structure</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>DOCX Loader</strong> — reads Word documents including headings and paragraphs</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Text Loader</strong> — handles plain text, markdown, CSV files</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Metadata</strong> — source filename, page number, doc type are attached to every chunk</span>
+            </div>
+          </div>
+        </div>
+        <div class="ppanel-right">
+          <div class="pvis pvis-orange">
+            <div class="pvis-label">Documents loaded</div>
+            <div class="doc-grid">
+              <div class="doc-card"><span class="doc-type">PDF</span><span class="doc-name">report.pdf</span><span class="doc-size">2.4 MB · 48 pages</span></div>
+              <div class="doc-card"><span class="doc-type">DOCX</span><span class="doc-name">policy.docx</span><span class="doc-size">890 KB · 22 pages</span></div>
+              <div class="doc-card"><span class="doc-type">TXT</span><span class="doc-name">notes.txt</span><span class="doc-size">14 KB · plain text</span></div>
+              <div class="doc-card"><span class="doc-type">PDF</span><span class="doc-name">manual.pdf</span><span class="doc-size">5.1 MB · 120 pages</span></div>
+              <div class="doc-card"><span class="doc-type">DOCX</span><span class="doc-name">faq.docx</span><span class="doc-size">340 KB · 8 pages</span></div>
+              <div class="doc-card"><span class="doc-type">TXT</span><span class="doc-name">data.txt</span><span class="doc-size">62 KB · csv data</span></div>
+            </div>
+            <div style="text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:12px">
+              6 documents · 198 pages · ready to chunk
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1: Chunking -->
+      <div class="ppanel" id="pp-1">
+        <div class="ppanel-left">
+          <span class="ppanel-tag tag-orange">Stage 02</span>
+          <div class="ppanel-title">Chunking</div>
+          <div class="ppanel-desc">Documents are too large to embed as a whole. They're split into smaller, overlapping pieces called chunks. Chunk size and overlap are critical tuning parameters.</div>
+          <div class="ppanel-details">
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Chunk size</strong> — typically 256–1024 tokens. Smaller = precise retrieval, larger = more context per result</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Overlap</strong> — consecutive chunks share ~20% of content to prevent answers from being split across boundaries</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Metadata preserved</strong> — each chunk remembers its source doc, page number, and position</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Sentence-aware splitting</strong> — chunks never cut mid-sentence to preserve semantic meaning</span>
+            </div>
+          </div>
+        </div>
+        <div class="ppanel-right">
+          <div class="pvis pvis-orange">
+            <div class="pvis-label">One document → many chunks</div>
+            <div style="background:rgba(232,93,47,.06);border:1px solid rgba(232,93,47,.15);border-radius:4px;padding:14px;margin-bottom:12px;font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.6">
+              <span style="color:var(--accent)">report.pdf · page 4</span><br/>
+              "The Q3 revenue grew by 23% year-over-year, driven primarily by enterprise subscription growth in the APAC region. Customer retention improved to 94%..."
+            </div>
+            <div class="doc-arrow">↓  split into chunks  ↓</div>
+            <div class="chunk-grid">
+              <div class="chunk">C-001</div>
+              <div class="chunk">C-002</div>
+              <div class="chunk">C-003</div>
+              <div class="chunk">C-004</div>
+              <div class="chunk">C-005</div>
+              <div class="chunk">C-006</div>
+              <div class="chunk">C-007</div>
+              <div class="chunk">C-008</div>
+            </div>
+            <div style="text-align:center;font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:12px">
+              198 pages → 1,247 chunks · 512 tokens each · 64 token overlap
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2: Embedding -->
+      <div class="ppanel" id="pp-2">
+        <div class="ppanel-left">
+          <span class="ppanel-tag tag-blue">Stage 03</span>
+          <div class="ppanel-title">Embedding</div>
+          <div class="ppanel-desc">Each chunk is converted into a vector — a list of hundreds of numbers that captures its meaning. Chunks with similar meaning end up close together in vector space.</div>
+          <div class="ppanel-details">
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Embedding model</strong> — transforms text into a 1024-dimensional numeric vector</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Semantic proximity</strong> — "revenue growth" and "sales increase" will have similar vectors</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Stored in ChromaDB</strong> — vectors are persisted in a vector database for fast similarity search</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>One-time cost</strong> — indexing runs once. Querying reuses the stored vectors every time</span>
+            </div>
+          </div>
+        </div>
+        <div class="ppanel-right">
+          <div class="pvis pvis-blue">
+            <div class="pvis-label">Vector space visualization</div>
+            <div class="embed-canvas-wrap">
+              <canvas id="embed-canvas"></canvas>
+            </div>
+            <div style="text-align:center;font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:8px">
+              Each dot = one chunk · proximity = semantic similarity
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3: Retrieval -->
+      <div class="ppanel" id="pp-3">
+        <div class="ppanel-left">
+          <span class="ppanel-tag tag-green">Stage 04</span>
+          <div class="ppanel-title">Retrieval</div>
+          <div class="ppanel-desc">When a user asks a question, it's embedded using the same model. The vector database finds the chunks whose vectors are closest — the most semantically relevant passages.</div>
+          <div class="ppanel-details">
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Query embedding</strong> — the user's question is converted to a vector on the fly</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Cosine similarity</strong> — measures the angle between the query vector and every chunk vector</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Top-K results</strong> — returns the K most similar chunks (e.g. top 5) to use as context</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Multi-query</strong> — advanced RAG uses conversation history as multiple queries for better recall</span>
+            </div>
+          </div>
+        </div>
+        <div class="ppanel-right">
+          <div class="pvis pvis-green">
+            <div class="pvis-label">Similarity search results</div>
+            <div class="query-box">
+              <div class="query-label">USER QUERY</div>
+              "What was the revenue growth in Q3?"
+            </div>
+            <div class="result-list">
+              <div class="result-item" style="border-left-color:#059669">
+                <span class="result-text">"Q3 revenue grew by 23% year-over-year..."</span>
+                <span class="result-score" style="background:rgba(5,150,105,.1);color:#059669">94%</span>
+              </div>
+              <div class="result-item" style="border-left-color:#16a34a">
+                <span class="result-text">"Enterprise subscriptions drove Q3 growth..."</span>
+                <span class="result-score" style="background:rgba(5,150,105,.1);color:#059669">88%</span>
+              </div>
+              <div class="result-item" style="border-left-color:#4ade80">
+                <span class="result-text">"APAC region contributed 41% of new revenue..."</span>
+                <span class="result-score" style="background:rgba(5,150,105,.08);color:#4ade80">79%</span>
+              </div>
+              <div class="result-item" style="border-left-color:#86efac">
+                <span class="result-text">"Customer retention reached 94% in Q3..."</span>
+                <span class="result-score" style="background:rgba(5,150,105,.06);color:#86efac">71%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4: Generation -->
+      <div class="ppanel" id="pp-4">
+        <div class="ppanel-left">
+          <span class="ppanel-tag tag-purple">Stage 05</span>
+          <div class="ppanel-title">Generation</div>
+          <div class="ppanel-desc">The retrieved chunks are assembled into a prompt and sent to the LLM. The model reads the context and generates an answer grounded entirely in what was retrieved — not from training memory.</div>
+          <div class="ppanel-details">
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Prompt construction</strong> — chunks are formatted as context blocks with source labels</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Instruction</strong> — model is told to answer only from the provided context, not from training data</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>LLM reads chunks</strong> — the model synthesizes a coherent answer from multiple passages</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>No hallucination</strong> — if the answer isn't in the retrieved chunks, the model says so</span>
+            </div>
+          </div>
+        </div>
+        <div class="ppanel-right">
+          <div class="pvis pvis-purple">
+            <div class="pvis-label">Prompt construction</div>
+            <div class="gen-wrap">
+              <div class="gen-context">
+                <div style="font-size:8px;letter-spacing:2px;color:rgba(5,150,105,.5);margin-bottom:6px">RETRIEVED CONTEXT</div>
+                [1] "Q3 revenue grew 23% YoY..." (report.pdf p.4)<br/>
+                [2] "Enterprise subs drove growth..." (report.pdf p.5)<br/>
+                [3] "APAC contributed 41%..." (report.pdf p.6)
+              </div>
+              <div class="gen-plus">+</div>
+              <div class="gen-prompt">
+                <div style="font-size:8px;letter-spacing:2px;color:rgba(124,58,237,.5);margin-bottom:6px">USER QUESTION</div>
+                "What was the revenue growth in Q3?"
+              </div>
+              <div class="gen-arrow">↓  LLM generates  ↓</div>
+              <div class="gen-answer">
+                "Based on the Q3 report, revenue grew <strong>23% year-over-year</strong>, driven by enterprise subscription growth, particularly in the APAC region which contributed 41% of new revenue."
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5: Response -->
+      <div class="ppanel" id="pp-5">
+        <div class="ppanel-left">
+          <span class="ppanel-tag tag-gold">Stage 06</span>
+          <div class="ppanel-title">Response</div>
+          <div class="ppanel-desc">The final response is returned to the user — not just the answer, but structured metadata about what was retrieved, from where, and how confident the system is.</div>
+          <div class="ppanel-details">
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>answer</strong> — the generated response text from the LLM</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>evidence[]</strong> — the exact chunks used, with source document and similarity score</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>evidence_count</strong> — how many chunks were retrieved and used</span>
+            </div>
+            <div class="pd-item">
+              <span class="pd-bullet">▸</span>
+              <span class="pd-text"><strong>Full traceability</strong> — every claim in the answer can be traced to a source page and document</span>
+            </div>
+          </div>
+        </div>
+        <div class="ppanel-right">
+          <div class="pvis pvis-gold">
+            <div class="pvis-label">API Response JSON</div>
+            <div class="resp-json">
+<span class="rj-brace">{</span><br/>
+&nbsp;&nbsp;<span class="rj-key">"answer"</span>: <span class="rj-str">"Revenue grew 23% YoY..."</span>,<br/>
+&nbsp;&nbsp;<span class="rj-key">"evidence_count"</span>: <span class="rj-num">4</span>,<br/>
+&nbsp;&nbsp;<span class="rj-key">"vectors_searched"</span>: <span class="rj-num">1247</span>,<br/>
+&nbsp;&nbsp;<span class="rj-key">"evidence"</span>: <span class="rj-brace">[</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="rj-brace">{</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rj-key">"text"</span>: <span class="rj-str">"Q3 revenue grew 23%..."</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rj-key">"score"</span>: <span class="rj-num">0.94</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rj-key">"source"</span>: <span class="rj-str">"report.pdf"</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="rj-brace">}</span><span class="rj-brace">,</span> ...<br/>
+&nbsp;&nbsp;<span class="rj-brace">]</span><br/>
+<span class="rj-brace">}</span>
+            </div>
+            <div class="resp-label" style="margin-top:12px">
+              Every answer is grounded · Every source is cited
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end panels -->
+  </div><!-- end pipeline-wrap -->
+</section>
+
+<div class="full-divider"></div>
+
+<!-- ══════════ VS ══════════ -->
+<section id="vs" style="background:var(--paper2);max-width:100%;padding:100px 48px">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="sec-eyebrow reveal">Comparison</div>
+    <h2 class="sec-title reveal">RAG vs <em>Vanilla LLM</em></h2>
+    <p class="sec-body reveal">Why not just ask ChatGPT directly? Here's exactly where RAG wins.</p>
+
+    <div class="vs-grid reveal">
+      <div class="vs-col">
+        <span class="vs-badge badge-red">Without RAG</span>
+        <div class="vs-col-title">Vanilla LLM</div>
+        <div class="vs-col-sub">Answers from training data only</div>
+        <ul class="vs-list">
+          <li><span class="vs-check">❌</span> No access to your private documents</li>
+          <li><span class="vs-check">❌</span> Knowledge frozen at training cutoff date</li>
+          <li><span class="vs-check">❌</span> Can hallucinate confident-sounding facts</li>
+          <li><span class="vs-check">❌</span> No source citations — unverifiable</li>
+          <li><span class="vs-check">❌</span> Can't answer about your internal data</li>
+          <li><span class="vs-check">❌</span> One context window, no long-term memory</li>
+        </ul>
+      </div>
+
+      <div class="vs-middle">
+        <div class="vs-divider-text">VS</div>
+      </div>
+
+      <div class="vs-col highlight">
+        <span class="vs-badge badge-green">With RAG</span>
+        <div class="vs-col-title">RAG System</div>
+        <div class="vs-col-sub">Retrieval + generation combined</div>
+        <ul class="vs-list">
+          <li><span class="vs-check">✅</span> Reads your documents, PDFs, knowledge base</li>
+          <li><span class="vs-check">✅</span> Always up to date — just re-index new docs</li>
+          <li><span class="vs-check">✅</span> Grounded answers — only says what's in the docs</li>
+          <li><span class="vs-check">✅</span> Full source citations with page numbers</li>
+          <li><span class="vs-check">✅</span> Works on private, confidential, proprietary data</li>
+          <li><span class="vs-check">✅</span> Conversation history improves retrieval quality</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="full-divider"></div>
+
+<!-- ══════════ USE CASES ══════════ -->
+<section id="usecases">
+  <div class="sec-eyebrow reveal">Applications</div>
+  <h2 class="sec-title reveal">Where RAG <em>Shines</em></h2>
+  <p class="sec-body reveal">Any domain where you need accurate, cited answers from a private knowledge base.</p>
+
+  <div class="uc-grid">
+    <div class="uc-card reveal">
+      <div class="uc-num">01</div>
+      <div class="uc-title">Enterprise Knowledge Base</div>
+      <div class="uc-body">Query internal wikis, HR policies, SOPs, and company documentation. New employees can ask questions and get precise, cited answers from official docs.</div>
+      <span class="uc-tag">Internal Tools</span>
+    </div>
+    <div class="uc-card reveal" style="transition-delay:.07s">
+      <div class="uc-num">02</div>
+      <div class="uc-title">Legal Document Analysis</div>
+      <div class="uc-body">Search across hundreds of contracts, case files, and regulations. Get specific clause references with exact page numbers and document sources.</div>
+      <span class="uc-tag">Legal Tech</span>
+    </div>
+    <div class="uc-card reveal" style="transition-delay:.14s">
+      <div class="uc-num">03</div>
+      <div class="uc-title">Medical Research Assistant</div>
+      <div class="uc-body">Query clinical studies, drug databases, and research papers. RAG ensures answers are grounded in peer-reviewed sources, not LLM guesses.</div>
+      <span class="uc-tag">Healthcare</span>
+    </div>
+    <div class="uc-card reveal" style="transition-delay:.21s">
+      <div class="uc-num">04</div>
+      <div class="uc-title">Customer Support Bot</div>
+      <div class="uc-body">Answer support tickets using your product documentation, FAQ, and release notes. Responses are accurate and point to the exact help article.</div>
+      <span class="uc-tag">Customer Success</span>
+    </div>
+    <div class="uc-card reveal" style="transition-delay:.28s">
+      <div class="uc-num">05</div>
+      <div class="uc-title">Financial Research</div>
+      <div class="uc-body">Analyze earnings reports, SEC filings, and financial models. RAG retrieves the exact figure from the right document — no hallucinated numbers.</div>
+      <span class="uc-tag">Finance</span>
+    </div>
+    <div class="uc-card reveal" style="transition-delay:.35s">
+      <div class="uc-num">06</div>
+      <div class="uc-title">Personal Document Assistant</div>
+      <div class="uc-body">Index your resume, notes, research papers, and project files. Ask "what did I write about X last year?" and get the exact passage back.</div>
+      <span class="uc-tag">Personal Productivity</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer>
+  <div class="footer-title">Under<span>RAG</span></div>
+  <div class="footer-sub">A visual explainer · Retrieval-Augmented Generation</div>
+  <div class="footer-copy">Built with HTML · CSS · Vanilla JS · No frameworks</div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════
+// PIPELINE TABS
+// ═══════════════════════════════════════════════════
+document.querySelectorAll('.ptab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const idx = tab.dataset.panel;
+    document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.ppanel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('pp-' + idx).classList.add('active');
+    // re-draw canvas if embedding tab
+    if (idx === '2') drawEmbedCanvas();
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// EMBEDDING CANVAS — scatter plot of dots
+// ═══════════════════════════════════════════════════
+const EC = document.getElementById('embed-canvas');
+const EX = EC.getContext('2d');
+let edots = [];
+
+const CLUSTERS = [
+  { cx:.25, cy:.3,  col:[232,93,47],  label:'Revenue',  n:18 },
+  { cx:.65, cy:.25, col:[37,99,235],  label:'Products', n:14 },
+  { cx:.2,  cy:.7,  col:[5,150,105],  label:'Legal',    n:16 },
+  { cx:.72, cy:.68, col:[124,58,237], label:'HR',       n:12 },
+  { cx:.48, cy:.5,  col:[201,149,42], label:'General',  n:10 },
+];
+
+function makeEdots() {
+  edots = [];
+  CLUSTERS.forEach(cl => {
+    for (let i = 0; i < cl.n; i++) {
+      const angle  = Math.random() * Math.PI * 2;
+      const radius = Math.random() * .12 + .01;
+      edots.push({
+        x:  cl.cx + Math.cos(angle) * radius,
+        y:  cl.cy + Math.sin(angle) * radius,
+        r:  Math.random() * 3 + 2,
+        col: cl.col,
+        label: cl.label,
+        pulse: Math.random() * Math.PI * 2,
+        speed: Math.random() * .02 + .01,
+        ox: cl.cx + Math.cos(angle) * radius,
+        oy: cl.cy + Math.sin(angle) * radius,
+      });
+    }
+  });
+}
+
+function drawEmbedCanvas() {
+  const W = EC.width  = EC.offsetWidth;
+  const H = EC.height = EC.offsetHeight;
+  if (!edots.length) makeEdots();
+
+  function frame() {
+    EX.clearRect(0, 0, W, H);
+
+    // cluster labels
+    CLUSTERS.forEach(cl => {
+      EX.font = '500 10px DM Mono, monospace';
+      EX.fillStyle = `rgba(${cl.col.join(',')}, .35)`;
+      EX.textAlign = 'center';
+      EX.fillText(cl.label, cl.cx * W, cl.cy * H - 18);
+    });
+
+    // dots
+    edots.forEach(d => {
+      d.pulse += d.speed;
+      const px = d.x * W;
+      const py = d.y * H;
+      const p  = Math.sin(d.pulse) * .3 + .7;
+      const [r, g, b] = d.col;
+
+      // soft glow
+      const grad = EX.createRadialGradient(px, py, 0, px, py, d.r * 3);
+      grad.addColorStop(0, `rgba(${r},${g},${b},${.25 * p})`);
+      grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      EX.beginPath();
+      EX.arc(px, py, d.r * 3, 0, Math.PI * 2);
+      EX.fillStyle = grad;
+      EX.fill();
+
+      // core dot
+      EX.beginPath();
+      EX.arc(px, py, d.r, 0, Math.PI * 2);
+      EX.fillStyle = `rgba(${r},${g},${b},${.8 * p})`;
+      EX.fill();
+    });
+
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+// ═══════════════════════════════════════════════════
+// SCROLL REVEAL
+// ═══════════════════════════════════════════════════
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) e.target.classList.add('on');
+  });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+makeEdots();
+// draw embed canvas once it's visible
+const embedObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { drawEmbedCanvas(); embedObs.disconnect(); }
+  });
+});
+embedObs.observe(EC);
+</script>
+</body>
+</html>

@@ -41,6 +41,7 @@ TOPICS = {
         'icon': '🧠',
         'color': '#4facfe',
         'subtopics': [
+            {'id': 'rag', 'title': "RAG", "description": "RAG pipeline, RAG components"},
             {'id': 'neural-networks', 'title': 'Neural Networks Basics',
              'description': 'Perceptrons, activation functions, backpropagation'},
             {'id': 'optimizers', 'title': 'Optimizers',
@@ -160,18 +161,21 @@ def content_detail(topic_id, subtopic_id):
                                        topic_id=topic_id)
             elif subtopic_id == 'seg-emb':
                 return render_template('segmentation_embedding.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
-            elif subtopic_id=="reproducibility":
-                return render_template("/dl/reproducibility.html",topic=topic,subtopic=subtopic,topic_id=topic_id)
-            elif subtopic_id=="optuna":
-                return render_template("/dl/optuna.html",topic=topic,subtopic=subtopic,topic_id=topic_id)
+            elif subtopic_id == "reproducibility":
+                return render_template("/dl/reproducibility.html", topic=topic, subtopic=subtopic, topic_id=topic_id)
+
+            elif subtopic_id == "rag":
+                return render_template("/dl/rag.html", topic=topic, subtopic=subtopic, topic_id=topic_id)
+            elif subtopic_id == "optuna":
+                return render_template("/dl/optuna.html", topic=topic, subtopic=subtopic, topic_id=topic_id)
 
             ## Stat
             elif subtopic_id == 'bias-variance':
                 return render_template("/stat/bias_variance_tradeoff_note.html", topic=topic, subtopic=subtopic,
                                        topic_id=topic_id)
             ### ML
-            elif subtopic_id=="train-test":
-                return render_template("/ml/train_test.html",topic=topic,subtopic=subtopic, topic_id=topic_id)
+            elif subtopic_id == "train-test":
+                return render_template("/ml/train_test.html", topic=topic, subtopic=subtopic, topic_id=topic_id)
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
     return "Content not found", 404
 
