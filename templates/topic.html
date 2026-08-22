@@ -3,7 +3,7 @@
 {% block title %}{{ topic.name }} - Study Hub{% endblock %}
 
 {% block content %}
-<div class="topic-header" style="background: linear-gradient(135deg, {{ topic.color }}, {{ topic.color }}dd);">
+<div class="topic-header" style="background: linear-gradient(135deg, {{ topic.color }}, {{ topic.color }}cc);">
     <div class="container">
         <a href="/" class="back-link">← Back to Home</a>
         <h1 class="topic-header-title">{{ topic.icon }} {{ topic.name }}</h1>
@@ -12,17 +12,52 @@
 </div>
 
 <div class="container">
-    <div class="subtopics-list">
-        {% for subtopic in topic.subtopics %}
-        <a href="/content/{{ topic_id }}/{{ subtopic.id }}" class="subtopic-card">
-            <div class="subtopic-number">{{ loop.index }}</div>
-            <div class="subtopic-info">
-                <h3 class="subtopic-title">{{ subtopic.title }}</h3>
-                <p class="subtopic-description">{{ subtopic.description }}</p>
-            </div>
-            <div class="subtopic-arrow">→</div>
-        </a>
-        {% endfor %}
+    <div class="subtopics-section">
+        <div class="subtopics-toolbar">
+            <label class="filter-box">
+                🔎
+                <input type="text" id="subtopicFilter" placeholder="Filter subtopics..." autocomplete="off">
+            </label>
+            <span class="filter-count" id="filterCount">{{ topic.subtopics|length }} shown</span>
+        </div>
+
+        <div class="subtopics-grid" id="subtopicsGrid">
+            {% for subtopic in topic.subtopics %}
+            <a href="/content/{{ topic_id }}/{{ subtopic.id }}" class="subtopic-card"
+               data-search="{{ (subtopic.title ~ ' ' ~ subtopic.description)|lower }}">
+                <div class="subtopic-number">{{ loop.index }}</div>
+                <div class="subtopic-info">
+                    <h3 class="subtopic-title">{{ subtopic.title }}</h3>
+                    <p class="subtopic-description">{{ subtopic.description }}</p>
+                </div>
+                <div class="subtopic-arrow">→</div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <p class="empty-filter" id="emptyFilter">No subtopics match your filter.</p>
     </div>
 </div>
+
+<script>
+    (function () {
+        const input = document.getElementById('subtopicFilter');
+        const cards = Array.from(document.querySelectorAll('#subtopicsGrid .subtopic-card'));
+        const count = document.getElementById('filterCount');
+        const empty = document.getElementById('emptyFilter');
+        const total = cards.length;
+
+        input.addEventListener('input', function () {
+            const q = input.value.trim().toLowerCase();
+            let visible = 0;
+            cards.forEach(card => {
+                const match = card.dataset.search.includes(q);
+                card.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            count.textContent = q ? visible + ' of ' + total + ' shown' : total + ' shown';
+            empty.style.display = visible === 0 ? 'block' : 'none';
+        });
+    })();
+</script>
 {% endblock %}

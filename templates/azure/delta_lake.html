@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 6 — Delta Lake | Azure Data Engineering Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:            #0B1620;
+    --ink-soft:       #0F1E2C;
+    --layer-1:        #142838;
+    --layer-2:        #1C3549;
+    --hairline:       #26425A;
+    --parchment:      #EDE7D8;
+    --parchment-dim:  #A9B8C4;
+    --parchment-faint:#71889B;
+    --amber:          #CC9E4C;
+    --amber-soft:     #8A6C39;
+    --rust:           #B06B49;
+    --good:           #7FA684;
+
+    --display: 'Fraunces', serif;
+    --body: 'Source Sans 3', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--ink);
+    color: var(--parchment);
+    font-family: var(--body);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  a{ color: var(--amber); }
+  ::selection{ background: var(--amber); color: var(--ink); }
+
+  :focus-visible{
+    outline: 2px solid var(--amber);
+    outline-offset: 3px;
+  }
+
+  .wrap{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* ---------- background texture: faint sediment lines ---------- */
+  .strata-bg{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      repeating-linear-gradient(
+        180deg,
+        transparent 0px,
+        transparent 78px,
+        rgba(204,158,76,0.035) 78px,
+        rgba(204,158,76,0.035) 79px
+      );
+    pointer-events: none;
+  }
+
+  /* ---------- top chapter rail ---------- */
+  .rail{
+    border-bottom: 1px solid var(--hairline);
+    background: linear-gradient(180deg, var(--ink-soft), var(--ink));
+  }
+  .rail-inner{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 18px 28px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--parchment-faint);
+    text-transform: uppercase;
+  }
+  .rail-inner span.book{ color: var(--amber); }
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding: 88px 0 64px;
+    position: relative;
+  }
+  .eyebrow{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 22px;
+  }
+  .eyebrow::before{
+    content:"";
+    width: 34px;
+    height: 1px;
+    background: var(--amber);
+  }
+  h1.title{
+    font-family: var(--display);
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-size: clamp(2.6rem, 6vw, 4.4rem);
+    line-height: 1.02;
+    margin: 0 0 20px;
+    color: var(--parchment);
+    letter-spacing: -0.01em;
+  }
+  h1.title em{
+    font-style: italic;
+    color: var(--amber);
+    font-weight: 500;
+  }
+  .subtitle{
+    font-size: 1.15rem;
+    color: var(--parchment-dim);
+    max-width: 56ch;
+    margin: 0 0 40px;
+  }
+
+  /* ---------- signature: strata / version stack ---------- */
+  .strata{
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--ink-soft);
+  }
+  .strata-row{
+    display:grid;
+    grid-template-columns: 90px 1fr 130px;
+    align-items:center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 0.84rem;
+  }
+  .strata-row:last-child{ border-bottom:none; }
+  .strata-row .v{
+    color: var(--amber);
+    font-weight: 600;
+  }
+  .strata-row .desc{ color: var(--parchment-dim); }
+  .strata-row .tag{
+    text-align:right;
+    color: var(--parchment-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.72rem;
+  }
+  .strata-row.current{
+    background: rgba(204,158,76,0.07);
+  }
+  .strata-row.current .desc{ color: var(--parchment); }
+  .strata-row.current .tag{ color: var(--amber); }
+
+  /* ---------- section scaffolding ---------- */
+  section.chapter-part{
+    padding: 64px 0;
+    border-top: 1px solid var(--hairline);
+  }
+  .section-head{
+    display:flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .section-num{
+    font-family: var(--mono);
+    color: var(--amber-soft);
+    font-size: 0.95rem;
+    flex-shrink:0;
+  }
+  h2{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(1.6rem, 3.4vw, 2.1rem);
+    margin: 0;
+    color: var(--parchment);
+  }
+  h3{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: var(--parchment);
+    margin: 0 0 10px;
+  }
+  p{ color: var(--parchment-dim); margin: 0 0 16px; }
+  p.lead{
+    font-size: 1.08rem;
+    color: var(--parchment);
+  }
+  strong{ color: var(--parchment); font-weight: 600; }
+
+  /* ---------- pain point cards ---------- */
+  .grid-cards{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin-top: 8px;
+  }
+  .card{
+    background: var(--layer-1);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 20px 22px;
+  }
+  .card h4{
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--rust);
+    margin: 0 0 10px;
+  }
+  .card p{ margin:0; font-size: 0.95rem; }
+
+  /* ---------- directory / log diagram ---------- */
+  .diagram{
+    background: var(--ink-soft);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 24px 26px;
+    font-family: var(--mono);
+    font-size: 0.87rem;
+    margin: 26px 0;
+    overflow-x:auto;
+  }
+  .diagram .folder{ color: var(--amber); }
+  .diagram .file{ color: var(--parchment-dim); }
+  .diagram .indent{ padding-left: 24px; }
+  .diagram .comment{ color: var(--parchment-faint); }
+
+  /* ---------- feature list ---------- */
+  .feature{
+    display:grid;
+    grid-template-columns: 210px 1fr;
+    gap: 24px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .feature:last-child{ border-bottom:none; }
+  .feature .name{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.08rem;
+    color: var(--amber);
+  }
+  .feature p{ margin:0; }
+  .feature code{
+    background: var(--layer-2);
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.85em;
+    color: var(--parchment);
+  }
+  @media (max-width: 640px){
+    .feature{ grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  /* ---------- code block ---------- */
+  .code-block{
+    background: var(--ink-soft);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    margin: 22px 0;
+    overflow: hidden;
+  }
+  .code-head{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--parchment-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  pre{
+    margin:0;
+    padding: 20px 22px;
+    overflow-x:auto;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    line-height: 1.65;
+    color: var(--parchment-dim);
+  }
+  pre .kw{ color: var(--amber); }
+  pre .str{ color: var(--good); }
+  pre .cmt{ color: var(--parchment-faint); font-style: italic; }
+  pre .fn{ color: var(--parchment); }
+
+  /* ---------- comparison table ---------- */
+  table{
+    width:100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 0.94rem;
+  }
+  th, td{
+    text-align:left;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  th{
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--amber);
+    font-weight: 500;
+  }
+  td{ color: var(--parchment-dim); }
+  td:first-child{ color: var(--parchment); font-weight: 600; }
+  tr:last-child td{ border-bottom:none; }
+
+  /* ---------- callout ---------- */
+  .callout{
+    border-left: 3px solid var(--amber);
+    background: rgba(204,158,76,0.06);
+    padding: 18px 22px;
+    border-radius: 0 4px 4px 0;
+    margin: 24px 0;
+  }
+  .callout p{ margin:0; color: var(--parchment); font-size: 0.96rem; }
+  .callout .label{
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    display:block;
+    margin-bottom: 8px;
+  }
+
+  /* ---------- summary / closing ---------- */
+  .closing{
+    padding: 56px 0 90px;
+  }
+  .closing-box{
+    background: var(--layer-1);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    padding: 34px 36px;
+  }
+  .closing-box p.lead{ margin-bottom: 18px; }
+  ul.takeaways{
+    list-style:none;
+    margin: 18px 0 0;
+    padding:0;
+  }
+  ul.takeaways li{
+    position:relative;
+    padding-left: 22px;
+    margin-bottom: 12px;
+    color: var(--parchment-dim);
+    font-size: 0.96rem;
+  }
+  ul.takeaways li::before{
+    content:"—";
+    position:absolute;
+    left:0;
+    color: var(--amber);
+  }
+
+  footer{
+    border-top: 1px solid var(--hairline);
+    padding: 26px 0 50px;
+    text-align:center;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--parchment-faint);
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 560px){
+    .strata-row{ grid-template-columns: 60px 1fr; }
+    .strata-row .tag{ display:none; }
+    .hero{ padding: 60px 0 44px; }
+    section.chapter-part{ padding: 46px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="strata-bg" aria-hidden="true"></div>
+
+<div class="rail">
+  <div class="rail-inner">
+    <span><span class="book">Azure Data Engineering Notes</span> · Part II — Databricks &amp; Unity Catalog</span>
+    <span>Chapter 6 / 9</span>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Chapter Six</div>
+    <h1 class="title">Delta Lake</h1>
+    <p class="subtitle">A transaction log laid quietly beneath your Parquet files — turning a folder of data into something a database would recognize as reliable.</p>
+
+    <div class="strata" role="img" aria-label="Diagram of a Delta table's version history, newest at top, each version a layer">
+      <div class="strata-row current">
+        <span class="v">v4</span>
+        <span class="desc">MERGE — daily upsert from source system</span>
+        <span class="tag">Current</span>
+      </div>
+      <div class="strata-row">
+        <span class="v">v3</span>
+        <span class="desc">UPDATE — status column corrected</span>
+        <span class="tag">2 hrs ago</span>
+      </div>
+      <div class="strata-row">
+        <span class="v">v2</span>
+        <span class="desc">DELETE — invalid rows removed</span>
+        <span class="tag">Yesterday</span>
+      </div>
+      <div class="strata-row">
+        <span class="v">v1</span>
+        <span class="desc">INSERT — schema evolved, new column added</span>
+        <span class="tag">3 days ago</span>
+      </div>
+      <div class="strata-row">
+        <span class="v">v0</span>
+        <span class="desc">CREATE TABLE — initial load</span>
+        <span class="tag">1 week ago</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="chapter-part" id="problem">
+    <div class="section-head">
+      <span class="section-num">6.1</span>
+      <h2>The problem it solves</h2>
+    </div>
+    <p class="lead">Before Delta Lake, working with a data lake meant writing raw files — Parquet, CSV, JSON — straight into cloud storage and hoping nothing went wrong in between.</p>
+    <p>That approach carries real risk once more than one job, or more than one person, touches the same folder.</p>
+
+    <div class="grid-cards">
+      <div class="card">
+        <h4>No transactions</h4>
+        <p>A write job that fails halfway through can leave corrupted or partial data behind, with no way to roll back.</p>
+      </div>
+      <div class="card">
+        <h4>No schema enforcement</h4>
+        <p>Anyone can write a file with a different shape into the same folder, silently breaking every job downstream.</p>
+      </div>
+      <div class="card">
+        <h4>No concurrency safety</h4>
+        <p>A read that overlaps a write can return inconsistent or incomplete results, with nothing to prevent it.</p>
+      </div>
+      <div class="card">
+        <h4>No row-level updates</h4>
+        <p>Plain Parquet files are immutable. Changing one row means rewriting the entire file by hand.</p>
+      </div>
+      <div class="card">
+        <h4>No history</h4>
+        <p>Overwrite the data and the previous version is simply gone — no audit trail, no way back.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="mechanism">
+    <div class="section-head">
+      <span class="section-num">6.2</span>
+      <h2>How it works underneath</h2>
+    </div>
+    <p class="lead">A Delta table is nothing exotic — it's a folder of ordinary Parquet files, sitting next to a log that records every change ever made to them.</p>
+    <p>Every write — insert, update, delete, merge — adds a new entry to that log rather than touching existing files in place. Readers consult the log to work out exactly which files currently represent the true state of the table.</p>
+
+    <div class="diagram">
+      <div><span class="folder">sales_transactions/</span></div>
+      <div class="indent"><span class="folder">_delta_log/</span> <span class="comment">— the transaction log</span></div>
+      <div class="indent" style="padding-left:48px"><span class="file">00000000000000000000.json</span></div>
+      <div class="indent" style="padding-left:48px"><span class="file">00000000000000000001.json</span></div>
+      <div class="indent" style="padding-left:48px"><span class="file">00000000000000000002.checkpoint.parquet</span></div>
+      <div class="indent" style="padding-left:48px"><span class="comment">…one entry per transaction</span></div>
+      <div class="indent"><span class="file">part-0001.snappy.parquet</span> <span class="comment">— the actual data</span></div>
+      <div class="indent"><span class="file">part-0002.snappy.parquet</span></div>
+    </div>
+
+    <p>Nothing here requires a special database engine. Spark — or any engine that understands the Delta protocol — reads the JSON log first, then reads only the Parquet files the log says are still valid.</p>
+  </section>
+
+  <section class="chapter-part" id="features">
+    <div class="section-head">
+      <span class="section-num">6.3</span>
+      <h2>What the log buys you</h2>
+    </div>
+    <p class="lead">Once every change is recorded rather than applied blindly, a handful of guarantees fall out for free.</p>
+
+    <div class="feature">
+      <div class="name">ACID transactions</div>
+      <p>Every write is atomic — it fully succeeds or fully fails, with no partial state left behind. Enforced through the log using optimistic concurrency control.</p>
+    </div>
+    <div class="feature">
+      <div class="name">Schema enforcement<br>&amp; evolution</div>
+      <p>Writes that don't match the table's schema are rejected by default. Deliberate changes are still allowed, e.g. via the <code>mergeSchema</code> option when adding a column.</p>
+    </div>
+    <div class="feature">
+      <div class="name">Time travel</div>
+      <p>Every change is logged, so any earlier version of the table can be queried directly — useful for auditing, debugging, or recovering from a bad write.</p>
+    </div>
+    <div class="feature">
+      <div class="name">Upserts &amp; merges</div>
+      <p>A single <code>MERGE INTO</code> statement can insert, update, and delete in one pass — the backbone of CDC pipelines, slowly changing dimensions, and deduplication.</p>
+    </div>
+    <div class="feature">
+      <div class="name">Row-level deletes<br>&amp; updates</div>
+      <p><code>DELETE</code> and <code>UPDATE</code> rewrite only the files that are actually affected, not the whole table.</p>
+    </div>
+    <div class="feature">
+      <div class="name">Batch + streaming, unified</div>
+      <p>The same table can be a streaming sink and a batch source at once, with exactly-once write guarantees either way.</p>
+    </div>
+    <div class="feature">
+      <div class="name">Performance upkeep</div>
+      <p><code>OPTIMIZE</code> compacts small files into larger ones, <code>ZORDER</code> co-locates related data for faster filtering, and <code>VACUUM</code> clears out old files once their history is no longer needed.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="unity-catalog">
+    <div class="section-head">
+      <span class="section-num">6.4</span>
+      <h2>Where this sits inside Unity Catalog</h2>
+    </div>
+    <p class="lead">Delta Lake is the format. Unity Catalog is the layer that keeps track of where each table's data lives and who is allowed to touch it — the two are not the same thing, even though they're easy to conflate.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Table type</th>
+          <th>Data location</th>
+          <th>On DROP TABLE</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Managed</td>
+          <td>Default storage tied to the metastore or schema</td>
+          <td>Metadata and underlying files are both deleted</td>
+        </tr>
+        <tr>
+          <td>External</td>
+          <td>A location you specify, via an External Location</td>
+          <td>Only the metadata entry is removed; files are untouched</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Either way, the files themselves are still Delta — same transaction log, same guarantees, same time travel. The Metastore only tracks where the <code>_delta_log</code> lives; the reliability itself comes from Delta Lake, not from Unity Catalog.</p>
+
+    <div class="callout">
+      <span class="label">Worth remembering</span>
+      <p>Choosing Managed vs. External is a decision about who owns the file lifecycle. It has no bearing on whether ACID transactions or time travel are available — those come with Delta Lake either way.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="example">
+    <div class="section-head">
+      <span class="section-num">6.5</span>
+      <h2>Reading, writing, and travelling back</h2>
+    </div>
+    <p class="lead">The same three operations cover most day-to-day work with a Delta table.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>write · overwrite as delta</span><span>PySpark</span></div>
+      <pre><span class="cmt"># Write as Delta — the default format in Databricks</span>
+df.write.format(<span class="str">"delta"</span>).mode(<span class="str">"overwrite"</span>).save(
+    <span class="str">"abfss://raw@&lt;storage-account&gt;.dfs.core.windows.net/sales/"</span>
+)</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span>read · load current version</span><span>PySpark</span></div>
+      <pre>df = spark.read.format(<span class="str">"delta"</span>).load(
+    <span class="str">"abfss://raw@&lt;storage-account&gt;.dfs.core.windows.net/sales/"</span>
+)</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span>read · a prior version</span><span>PySpark</span></div>
+      <pre><span class="cmt"># Time travel — read the table as it looked at version 3</span>
+df_old = spark.read.format(<span class="str">"delta"</span>) \
+    .option(<span class="str">"versionAsOf"</span>, <span class="fn">3</span>) \
+    .load(<span class="str">"abfss://raw@&lt;storage-account&gt;.dfs.core.windows.net/sales/"</span>)</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span>merge · upsert from a source table</span><span>SQL</span></div>
+      <pre><span class="kw">MERGE INTO</span> target_table t
+<span class="kw">USING</span> source_table s
+<span class="kw">ON</span> t.id = s.id
+<span class="kw">WHEN MATCHED THEN UPDATE SET</span> *
+<span class="kw">WHEN NOT MATCHED THEN INSERT</span> *;</pre>
+    </div>
+  </section>
+
+  <section class="closing">
+    <div class="closing-box">
+      <p class="lead">Delta Lake is a set of Parquet files with a transaction log sitting quietly beside them — and that log is doing all the work.</p>
+      <ul class="takeaways">
+        <li>Reliability comes from the log, not from any special file format for the data itself.</li>
+        <li>Time travel, schema enforcement, and merges are only possible because every change is recorded before it's applied.</li>
+        <li>Managed vs. External tables decide who owns the files — both are Delta underneath, with identical guarantees.</li>
+        <li><code style="background:var(--layer-2);padding:2px 7px;border-radius:3px;color:var(--parchment)">OPTIMIZE</code>, <code style="background:var(--layer-2);padding:2px 7px;border-radius:3px;color:var(--parchment)">ZORDER</code>, and <code style="background:var(--layer-2);padding:2px 7px;border-radius:3px;color:var(--parchment)">VACUUM</code> exist to keep that reliability from costing you performance over time.</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Azure Data Engineering Notes — Chapter 6: Delta Lake
+</footer>
+
+</body>
+</html>

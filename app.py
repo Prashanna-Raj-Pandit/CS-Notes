@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request
-import os
 
 app = Flask(__name__)
 
@@ -114,6 +113,15 @@ TOPICS = {
             {'id': 'dynamic-programming', 'title': 'Dynamic Programming', 'description': 'Memoization and tabulation'},
         ]
     },
+    'azure': {
+        'name': 'MS Azure',
+        'icon': 'o',
+        'color': '#43e97b',
+        'subtopics': [
+            {'id': 'delta-lake', 'title': 'Delta Lake', 'description': 'What is Delta Lake'},
+
+        ]
+    },
 }
 
 
@@ -176,7 +184,13 @@ def content_detail(topic_id, subtopic_id):
             ### ML
             elif subtopic_id == "train-test":
                 return render_template("/ml/train_test.html", topic=topic, subtopic=subtopic, topic_id=topic_id)
+            ### Azure
+            elif subtopic_id =="delta-lake":
+                return  render_template('azure/delta_lake.html',topic=topic,subtopic=subtopic,topic_id=topic_id)
+
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
+
+
     return "Content not found", 404
 
 
