@@ -119,6 +119,8 @@ TOPICS = {
         'color': '#43e97b',
         'subtopics': [
             {'id': 'delta-lake', 'title': 'Delta Lake', 'description': 'What is Delta Lake'},
+            {'id': 'key-vault-db', 'title': 'Key Vault + Databricks',
+             'description': 'Azure Key Vault + Databricks Secrets'},
 
         ]
     },
@@ -185,11 +187,12 @@ def content_detail(topic_id, subtopic_id):
             elif subtopic_id == "train-test":
                 return render_template("/ml/train_test.html", topic=topic, subtopic=subtopic, topic_id=topic_id)
             ### Azure
-            elif subtopic_id =="delta-lake":
-                return  render_template('azure/delta_lake.html',topic=topic,subtopic=subtopic,topic_id=topic_id)
+            elif subtopic_id == "delta-lake":
+                return render_template('azure/delta_lake.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
+            elif subtopic_id == "key-vault-db":
+                return render_template('azure/key_vault.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
 
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
-
 
     return "Content not found", 404
 
