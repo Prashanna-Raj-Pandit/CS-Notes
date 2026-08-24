@@ -1,5 +1,14 @@
 # My Data Science Study Notes 📚
 
+#### [Website](!https://csnp.vercel.app/) (https://csnp.vercel.app/)
+<br align="center">
+<img src="landing.png"></img>
+<br/>
+
+<a href="https://csnp.vercel.app/">
+</a>
+
+
 Hey there! This is my personal collection of study notes for Data Science, Machine Learning, and related topics. I built this simple Flask web app to keep everything organized and easy to access whenever I need to review concepts.
 
 I've organized my notes into these main areas like:
