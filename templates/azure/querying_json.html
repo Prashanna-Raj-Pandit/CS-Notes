@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 8 — Querying JSON Files with OPENJSON | Azure Data Engineering Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:            #0B1620;
+    --ink-soft:       #0F1E2C;
+    --layer-1:        #142838;
+    --layer-2:        #1C3549;
+    --hairline:       #26425A;
+    --parchment:      #EDE7D8;
+    --parchment-dim:  #A9B8C4;
+    --parchment-faint:#71889B;
+    --amber:          #CC9E4C;
+    --amber-soft:     #8A6C39;
+    --rust:           #B06B49;
+    --teal:           #6E9C97;
+    --good:           #7FA684;
+
+    --display: 'Fraunces', serif;
+    --body: 'Source Sans 3', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--ink);
+    color: var(--parchment);
+    font-family: var(--body);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  a{ color: var(--amber); }
+  ::selection{ background: var(--amber); color: var(--ink); }
+
+  :focus-visible{
+    outline: 2px solid var(--amber);
+    outline-offset: 3px;
+  }
+
+  .wrap{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  .strata-bg{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      repeating-linear-gradient(
+        180deg,
+        transparent 0px,
+        transparent 78px,
+        rgba(204,158,76,0.035) 78px,
+        rgba(204,158,76,0.035) 79px
+      );
+    pointer-events: none;
+  }
+
+  .rail{
+    border-bottom: 1px solid var(--hairline);
+    background: linear-gradient(180deg, var(--ink-soft), var(--ink));
+  }
+  .rail-inner{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 18px 28px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--parchment-faint);
+    text-transform: uppercase;
+    gap: 20px;
+  }
+  .rail-inner span.book{ color: var(--amber); }
+
+  .hero{
+    padding: 88px 0 64px;
+    position: relative;
+  }
+  .eyebrow{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 22px;
+  }
+  .eyebrow::before{
+    content:"";
+    width: 34px;
+    height: 1px;
+    background: var(--amber);
+  }
+  h1.title{
+    font-family: var(--display);
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-size: clamp(2.2rem, 5.2vw, 3.7rem);
+    line-height: 1.05;
+    margin: 0 0 20px;
+    color: var(--parchment);
+    letter-spacing: -0.01em;
+  }
+  .subtitle{
+    font-size: 1.13rem;
+    color: var(--parchment-dim);
+    max-width: 58ch;
+    margin: 0 0 44px;
+  }
+
+  /* ---------- signature: pipeline ---------- */
+  .pipeline{
+    display:flex;
+    align-items: stretch;
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .stage{
+    flex: 1;
+    padding: 24px 22px;
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--ink-soft);
+  }
+  .stage.active{ background: rgba(204,158,76,0.08); }
+  .stage-label{
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.68rem;
+    color: var(--parchment-faint);
+  }
+  .stage-name{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--parchment);
+  }
+  .stage.active .stage-name{ color: var(--amber); }
+  .stage-note{ font-size: 0.83rem; color: var(--parchment-dim); }
+  .arrow{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width: 46px;
+    flex-shrink:0;
+    color: var(--amber);
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    background: var(--ink);
+  }
+  .pipeline-caption{
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--parchment-faint);
+    text-align:center;
+    margin: 16px 0 0;
+  }
+  @media (max-width: 640px){
+    .pipeline{ flex-direction:column; }
+    .arrow{ width:100%; height:32px; }
+  }
+
+  /* ---------- section scaffolding ---------- */
+  section.chapter-part{
+    padding: 60px 0;
+    border-top: 1px solid var(--hairline);
+  }
+  .section-head{
+    display:flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+  .section-num{
+    font-family: var(--mono);
+    color: var(--amber-soft);
+    font-size: 0.95rem;
+    flex-shrink:0;
+  }
+  h2{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 3.2vw, 1.95rem);
+    margin: 0;
+    color: var(--parchment);
+  }
+  h3{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.18rem;
+    color: var(--parchment);
+    margin: 34px 0 10px;
+  }
+  p{ color: var(--parchment-dim); margin: 0 0 16px; }
+  p.lead{ font-size: 1.06rem; color: var(--parchment); }
+  strong{ color: var(--parchment); font-weight: 600; }
+  code{
+    background: var(--layer-2);
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.87em;
+    color: var(--parchment);
+    white-space: nowrap;
+  }
+
+  /* ---------- cards ---------- */
+  .grid-cards{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    margin: 8px 0 6px;
+  }
+  .card{
+    background: var(--layer-1);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 19px 21px;
+  }
+  .card h4{
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--amber);
+    margin: 0 0 9px;
+  }
+  .card p{ margin:0; font-size: 0.94rem; }
+
+  /* ---------- diagram (monospace box) ---------- */
+  .diagram{
+    background: var(--ink-soft);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 22px 24px;
+    font-family: var(--mono);
+    font-size: 0.86rem;
+    margin: 22px 0;
+    overflow-x:auto;
+  }
+  .diagram .row-in{ color: var(--parchment-dim); }
+  .diagram .arrow-map{ color: var(--amber-soft); }
+  .diagram .col-name{ color: var(--amber); }
+  .diagram .comment{ color: var(--parchment-faint); }
+  .diagram .rule{ border-top: 1px dashed var(--hairline); margin: 12px 0; }
+
+  /* ---------- anatomy / feature rows ---------- */
+  .feature{
+    display:grid;
+    grid-template-columns: 190px 1fr;
+    gap: 22px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .feature:first-of-type{ padding-top: 6px; }
+  .feature:last-child{ border-bottom:none; }
+  .feature .name{
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--amber);
+  }
+  .feature p{ margin:0; font-size: 0.95rem; }
+  @media (max-width: 640px){
+    .feature{ grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  /* ---------- code block ---------- */
+  .code-block{
+    background: var(--ink-soft);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    margin: 22px 0;
+    overflow: hidden;
+  }
+  .code-head{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--parchment-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  pre{
+    margin:0;
+    padding: 19px 22px;
+    overflow-x:auto;
+    font-family: var(--mono);
+    font-size: 0.84rem;
+    line-height: 1.68;
+    color: var(--parchment-dim);
+  }
+  pre .kw{ color: var(--amber); }
+  pre .str{ color: var(--good); }
+  pre .cmt{ color: var(--parchment-faint); font-style: italic; }
+  pre .fn{ color: var(--parchment); }
+  pre .ph{ color: var(--teal); }
+
+  /* ---------- console (neutral output / error output) ---------- */
+  .console{
+    background: var(--ink-soft);
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--parchment-faint);
+    border-radius: 0 4px 4px 0;
+    padding: 14px 20px;
+    font-family: var(--mono);
+    font-size: 0.83rem;
+    margin: 18px 0;
+  }
+  .console .line{ color: var(--parchment-dim); margin-bottom: 4px; }
+  .console .line:last-child{ margin-bottom:0; }
+  .console.error{ border-left-color: var(--rust); }
+  .console.error .line.msg{ color: var(--rust); }
+
+  /* ---------- tables ---------- */
+  table{
+    width:100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 0.92rem;
+  }
+  th, td{
+    text-align:left;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: top;
+  }
+  th{
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--amber);
+    font-weight: 500;
+  }
+  td{ color: var(--parchment-dim); }
+  td:first-child{ color: var(--parchment); font-weight: 600; }
+  tr:last-child td{ border-bottom:none; }
+  .table-wrap{ overflow-x: auto; }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-left: 3px solid var(--amber);
+    background: rgba(204,158,76,0.06);
+    padding: 17px 22px;
+    border-radius: 0 4px 4px 0;
+    margin: 22px 0;
+  }
+  .callout p{ margin:0; color: var(--parchment); font-size: 0.95rem; }
+  .callout p + p{ margin-top: 8px; }
+  .callout .label{
+    font-family: var(--mono);
+    font-size: 0.71rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    display:block;
+    margin-bottom: 8px;
+  }
+  .callout.bridge{ border-left-color: var(--teal); background: rgba(110,156,151,0.07); }
+  .callout.bridge .label{ color: var(--teal); }
+  .callout.warn{ border-left-color: var(--rust); background: rgba(176,107,73,0.07); }
+  .callout.warn .label{ color: var(--rust); }
+
+  /* ---------- closing ---------- */
+  .closing{ padding: 54px 0 40px; }
+  .closing-box{
+    background: var(--layer-1);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    padding: 32px 34px;
+  }
+  .closing-box p.lead{ margin-bottom: 16px; }
+  ul.takeaways{ list-style:none; margin: 16px 0 0; padding:0; }
+  ul.takeaways li{
+    position:relative;
+    padding-left: 22px;
+    margin-bottom: 12px;
+    color: var(--parchment-dim);
+    font-size: 0.95rem;
+  }
+  ul.takeaways li::before{
+    content:"—";
+    position:absolute;
+    left:0;
+    color: var(--amber);
+  }
+
+  .next-up{
+    padding: 0 0 60px;
+    text-align:center;
+  }
+  .next-up span{
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--parchment-faint);
+  }
+  .next-up strong{
+    display:block;
+    font-family: var(--display);
+    font-size: 1.1rem;
+    color: var(--amber);
+    margin-top: 6px;
+    font-weight: 600;
+  }
+
+  footer{
+    border-top: 1px solid var(--hairline);
+    padding: 26px 0 50px;
+    text-align:center;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--parchment-faint);
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 560px){
+    .hero{ padding: 56px 0 40px; }
+    section.chapter-part{ padding: 42px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="strata-bg" aria-hidden="true"></div>
+
+<div class="rail">
+  <div class="rail-inner">
+    <span><span class="book">Azure Data Engineering Notes</span> · Part III — Synapse Serverless SQL Pools</span>
+    <span>Chapter 8 / 9</span>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Chapter Eight</div>
+    <h1 class="title">Querying JSON Files with OPENJSON</h1>
+    <p class="subtitle">Serverless SQL has no native JSON reader. Here's the trick that disguises a JSON file as delimited text, and the two functions — JSON_VALUE and OPENJSON — that take it from there.</p>
+
+    <div class="pipeline" role="img" aria-label="Diagram: a JSON file is disguised as CSV so OPENROWSET reads each line untouched into a single text column">
+      <div class="stage">
+        <span class="stage-label">Data Lake</span>
+        <span class="stage-name">payment_type.json</span>
+        <span class="stage-note">One JSON object per line</span>
+      </div>
+      <div class="arrow">→</div>
+      <div class="stage active">
+        <span class="stage-label">OPENROWSET</span>
+        <span class="stage-name">disguised as CSV</span>
+        <span class="stage-note">Delimiters JSON never contains</span>
+      </div>
+      <div class="arrow">→</div>
+      <div class="stage">
+        <span class="stage-label">Result</span>
+        <span class="stage-name">jsonDoc column</span>
+        <span class="stage-note">Raw JSON text, one row per line</span>
+      </div>
+    </div>
+    <p class="pipeline-caption">The parser never knows it's reading JSON — it's just reading lines that happen never to contain their own delimiter.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="chapter-part" id="no-json-format">
+    <div class="section-head">
+      <span class="section-num">8.1</span>
+      <h2>Why there's no FORMAT='JSON'</h2>
+    </div>
+    <p class="lead"><code>OPENROWSET</code> recognizes exactly three formats: <code>CSV</code>, <code>PARQUET</code>, and <code>DELTA</code>. JSON isn't one of them — there is no built-in JSON reader in serverless SQL.</p>
+    <p>The practical consequence is that reading JSON becomes a two-step problem instead of one. First, get the raw text of each JSON document into SQL as a plain string, untouched. Second, interpret that string as JSON using dedicated functions. <code>OPENROWSET</code> only ever does the first step here — it has no idea the text it's reading happens to be JSON.</p>
+
+    <div class="grid-cards">
+      <div class="card">
+        <h4>Step one — text in</h4>
+        <p><code>OPENROWSET</code> reads each line as a single, unsplit column of raw text, using delimiters chosen specifically so nothing in the file can trigger them.</p>
+      </div>
+      <div class="card">
+        <h4>Step two — structure out</h4>
+        <p><code>JSON_VALUE</code> or <code>OPENJSON</code> parse that raw text afterward, pulling out fields or expanding it into rows.</p>
+      </div>
+    </div>
+
+    <div class="callout bridge">
+      <span class="label">Postgres bridge</span>
+      <p>Postgres has native <code>json</code> and <code>jsonb</code> column types with built-in operators — this two-step workaround doesn't exist there because a Postgres table can store and query JSON directly. Synapse serverless has no such native type in this context; it's reading raw files, not storing typed columns, so it has to work around the gap.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="disguise">
+    <div class="section-head">
+      <span class="section-num">8.2</span>
+      <h2>The disguise: reading JSON as untouched text</h2>
+    </div>
+    <p class="lead">The trick is to set every CSV structural character — field delimiter, field quote, row terminator — to something that will never naturally appear inside a JSON document. Nothing then splits, and each line comes through exactly as written.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>reading a JSON-lines file untouched</span><span>T-SQL</span></div>
+      <pre>SELECT <span class="kw">TOP</span> 100 *
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/payment_type.json'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    PARSER_VERSION = <span class="str">'1.0'</span>,
+    FIELDTERMINATOR = <span class="str">'0x0b'</span>,
+    FIELDQUOTE = <span class="str">'0x0b'</span>,
+    ROWTERMINATOR = <span class="str">'0x0a'</span>
+)
+WITH (
+    jsonDoc NVARCHAR(MAX)
+) AS [pt];</pre>
+    </div>
+
+    <div class="feature">
+      <div class="name">FIELDTERMINATOR<br>= '0x0b'</div>
+      <p>The column separator, set to a hex control character. Since it never occurs in real JSON, no line ever splits into more than one field.</p>
+    </div>
+    <div class="feature">
+      <div class="name">FIELDQUOTE<br>= '0x0b'</div>
+      <p>Set to the same obscure character, for the same reason — JSON is full of ordinary <code>"</code> characters, and the default field-quote character would otherwise try to treat every one of them as structural.</p>
+    </div>
+    <div class="feature">
+      <div class="name">ROWTERMINATOR<br>= '0x0a'</div>
+      <p>The hex code for a line feed (<code>\n</code>). This says each line in the file is one row — the standard layout for JSON Lines, one JSON object per line.</p>
+    </div>
+    <div class="feature">
+      <div class="name">PARSER_VERSION<br>= '1.0'</div>
+      <p>This pattern is written and commonly used against the older parser. It isn't verified to behave identically on <code>2.0</code>, so stick with <code>1.0</code> for this specific technique unless tested otherwise.</p>
+    </div>
+    <div class="feature">
+      <div class="name">jsonDoc<br>NVARCHAR(MAX)</div>
+      <p>One column, one JSON document per row. <code>NVARCHAR(MAX)</code> is needed both for unlimited length and full Unicode support — see Chapter 7 for the fuller <code>VARCHAR</code> vs. <code>NVARCHAR</code> picture.</p>
+    </div>
+
+    <p>The result is a single column of raw, intact JSON strings:</p>
+
+    <div class="console">
+      <div class="line">jsonDoc</div>
+      <div class="line">--------------------------------------------------------</div>
+      <div class="line">{"payment_type": 1, "description": "Credit card"}</div>
+      <div class="line">{"payment_type": 2, "description": "Cash"}</div>
+    </div>
+
+    <p>Nothing has been parsed yet. This is still just text — the next two sections cover pulling actual structure out of it.</p>
+  </section>
+
+  <section class="chapter-part" id="vertical-tab">
+    <div class="section-head">
+      <span class="section-num">8.3</span>
+      <h2>An aside: what is a vertical tab?</h2>
+    </div>
+    <p class="lead">Worth a short detour, since <code>0x0B</code> looks arbitrary until you know where it comes from.</p>
+
+    <div class="diagram">
+      <div><span class="col-name">0x09</span> <span class="arrow-map">→</span> decimal 9 <span class="arrow-map">→</span> Horizontal Tab <span class="comment">— the familiar "\t"</span></div>
+      <div><span class="col-name">0x0A</span> <span class="arrow-map">→</span> decimal 10 <span class="arrow-map">→</span> Line Feed <span class="comment">— the familiar "\n"</span></div>
+      <div><span class="col-name">0x0B</span> <span class="arrow-map">→</span> decimal 11 <span class="arrow-map">→</span> Vertical Tab <span class="comment">— obscure, essentially unused today</span></div>
+    </div>
+
+    <p>Vertical Tab dates back to teletypes and line printers, where it told the machine to advance the paper down to the next preset row — the vertical counterpart to horizontal tab moving across to a column stop. Once printing moved away from that kind of hardware, the character lost its purpose. It's still valid in every text encoding, but almost nothing produces it intentionally anymore.</p>
+
+    <p>That's precisely why it works so well here. The goal was never to use vertical tab for its original meaning — it's simply obscure enough that no real JSON content will ever contain it by accident. Any similarly rare control character (<code>0x1E</code>, <code>0x1F</code>) would serve the same purpose; <code>0x0B</code> is just the conventional choice for this pattern.</p>
+  </section>
+
+  <section class="chapter-part" id="json-value">
+    <div class="section-head">
+      <span class="section-num">8.4</span>
+      <h2>JSON_VALUE: pulling out one scalar</h2>
+    </div>
+    <p class="lead">Once a document is sitting in a column as text, <code>JSON_VALUE</code> extracts a single field from it by path.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>flattening two fields out of jsonDoc</span><span>T-SQL</span></div>
+      <pre>SELECT
+    JSON_VALUE(jsonDoc, <span class="str">'$.payment_type'</span>)  AS payment_type,
+    JSON_VALUE(jsonDoc, <span class="str">'$.description'</span>)   AS description
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/payment_type.json'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    PARSER_VERSION = <span class="str">'1.0'</span>,
+    FIELDTERMINATOR = <span class="str">'0x0b'</span>,
+    FIELDQUOTE = <span class="str">'0x0b'</span>,
+    ROWTERMINATOR = <span class="str">'0x0a'</span>
+)
+WITH (
+    jsonDoc NVARCHAR(MAX)
+) AS [pt];</pre>
+    </div>
+
+    <p><code>$.payment_type</code> means "the <code>payment_type</code> key at the document's root." The rules governing what comes back are simple and worth knowing exactly:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Situation</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>Path exists, value is a string or number</td><td>The scalar value</td></tr>
+          <tr><td>Path doesn't exist in the document</td><td><code>NULL</code> — no error</td></tr>
+          <tr><td>Path resolves to an object or array</td><td><code>NULL</code> — <code>JSON_VALUE</code> never serializes nested structures</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout bridge">
+      <span class="label">Postgres bridge</span>
+      <p>Postgres's <code>-&gt;&gt;</code> operator is the direct equivalent: <code>col-&gt;&gt;'key'</code> pulls out one scalar value, the same way <code>JSON_VALUE(col, '$.key')</code> does — an operator instead of a function, same underlying idea.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="openjson">
+    <div class="section-head">
+      <span class="section-num">8.5</span>
+      <h2>OPENJSON: unpacking into a rowset</h2>
+    </div>
+    <p class="lead"><code>JSON_VALUE</code> only ever returns one value. When a document is really an array — or you want several fields extracted at once, shaped as real columns — <code>OPENJSON</code> is the tool that expands JSON into a proper table.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>expanding jsonDoc into typed columns</span><span>T-SQL</span></div>
+      <pre>SELECT *
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/payment_type.json'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    PARSER_VERSION = <span class="str">'1.0'</span>,
+    FIELDTERMINATOR = <span class="str">'0x0b'</span>,
+    FIELDQUOTE = <span class="str">'0x0b'</span>,
+    ROWTERMINATOR = <span class="str">'0x0a'</span>
+)
+WITH (
+    jsonDoc NVARCHAR(MAX)
+) AS pt
+CROSS APPLY OPENJSON(jsonDoc)
+WITH (
+    payment_type      SMALLINT,
+    payment_type_desc VARCHAR(50)
+) AS j;</pre>
+    </div>
+
+    <p><code>CROSS APPLY</code> runs <code>OPENJSON</code> once per incoming row, feeding it that row's <code>jsonDoc</code> value and joining the expanded result back to it — the standard pattern for turning one JSON column into several real columns.</p>
+
+    <div class="callout warn">
+      <span class="label">Common mistake</span>
+      <p>Just like <code>OPENROWSET</code>, the result of <code>OPENJSON(...) WITH (...)</code> is a derived table and needs its own alias — the <code>AS j</code> at the end here. Leaving it off produces a plain syntax error, since T-SQL requires every derived table to be named, exactly the rule covered for <code>OPENROWSET</code> in Chapter 7.</p>
+    </div>
+
+    <h3>When the shape isn't known ahead of time</h3>
+    <p>A <code>WITH</code> clause assumes a known, fixed set of fields. When the document's structure is unpredictable, dropping <code>WITH</code> entirely gives back every key/value pair as generic rows instead:</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>OPENJSON without WITH — generic key/value output</span><span>T-SQL</span></div>
+      <pre>SELECT *
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/payment_type.json'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    PARSER_VERSION = <span class="str">'1.0'</span>,
+    FIELDTERMINATOR = <span class="str">'0x0b'</span>,
+    FIELDQUOTE = <span class="str">'0x0b'</span>,
+    ROWTERMINATOR = <span class="str">'0x0a'</span>
+)
+WITH (
+    jsonDoc NVARCHAR(MAX)
+) AS pt
+CROSS APPLY OPENJSON(jsonDoc) AS kv;</pre>
+    </div>
+
+    <div class="console">
+      <div class="line">key             value           type</div>
+      <div class="line">--------------  --------------  ----</div>
+      <div class="line">payment_type    1               2</div>
+      <div class="line">description     Credit card     1</div>
+    </div>
+
+    <p>The <code>type</code> column tells you what kind of value it is, which matters when the shape is genuinely unknown ahead of time:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Type code</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>null</td></tr>
+          <tr><td>1</td><td>string</td></tr>
+          <tr><td>2</td><td>number</td></tr>
+          <tr><td>3</td><td>boolean (true / false)</td></tr>
+          <tr><td>4</td><td>array</td></tr>
+          <tr><td>5</td><td>object</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout bridge">
+      <span class="label">Postgres bridge</span>
+      <p><code>jsonb_each</code> / <code>jsonb_each_text</code> give the same generic key-value breakdown as bare <code>OPENJSON</code>. For expanding a JSON array into rows specifically, <code>jsonb_array_elements</code> or <code>json_to_recordset</code> are the closer match to <code>OPENJSON</code> used with a <code>WITH</code> clause.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="as-json">
+    <div class="section-head">
+      <span class="section-num">8.6</span>
+      <h2>Nested values: the AS JSON modifier</h2>
+    </div>
+    <p class="lead">A <code>WITH</code> clause normally extracts a plain scalar per column. When a field is itself an object or array, that default extraction quietly fails.</p>
+
+    <div class="callout warn">
+      <span class="label">Common mistake</span>
+      <p>Given a field like <code>"aliases": ["Credit", "CC"]</code>, mapping it as a plain <code>NVARCHAR(MAX)</code> column doesn't error — it just returns <code>NULL</code> for every row, silently. <code>OPENJSON</code> won't serialize a nested structure into a scalar column unless it's told to.</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span>without AS JSON — nested field comes back NULL</span><span>T-SQL</span></div>
+      <pre>CROSS APPLY OPENJSON(jsonDoc)
+WITH (
+    payment_type SMALLINT,
+    aliases      NVARCHAR(MAX)   <span class="cmt">-- always NULL: this path is an array</span>
+) AS j;</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span>with AS JSON — nested field returned as raw JSON text</span><span>T-SQL</span></div>
+      <pre>CROSS APPLY OPENJSON(jsonDoc)
+WITH (
+    payment_type SMALLINT,
+    aliases      NVARCHAR(MAX) <span class="str">'$.aliases'</span> AS JSON
+) AS j;</pre>
+    </div>
+
+    <p><code>AS JSON</code> tells <code>OPENJSON</code>: don't try to extract this as a scalar, just hand back whatever's at this path as its own raw JSON text. That text can then be parsed further with a second, nested <code>OPENJSON</code> call if the individual array elements are needed as rows too.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field in source JSON</th><th>WITH clause syntax</th></tr></thead>
+        <tbody>
+          <tr><td>Plain scalar (string / number)</td><td><code>col_name TYPE '$.path'</code></td></tr>
+          <tr><td>Nested object or array</td><td><code>col_name NVARCHAR(MAX) '$.path' AS JSON</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>One shortcut worth knowing: the <code>'$.path'</code> portion can be omitted whenever the JSON key name matches the column name exactly — <code>OPENJSON</code> assumes <code>$.column_name</code> by default. It's written out explicitly above only for clarity.</p>
+  </section>
+
+  <section class="chapter-part" id="comparison">
+    <div class="section-head">
+      <span class="section-num">8.7</span>
+      <h2>JSON_VALUE vs. OPENJSON, at a glance</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>&nbsp;</th><th>JSON_VALUE</th><th>OPENJSON</th></tr></thead>
+        <tbody>
+          <tr><td>Input</td><td>One JSON document</td><td>One JSON document, often containing an array</td></tr>
+          <tr><td>Output</td><td>One scalar value</td><td>A full rowset — multiple rows and columns</td></tr>
+          <tr><td>Use case</td><td>Pluck a single field out</td><td>Explode an array into rows, or flatten several fields at once</td></tr>
+          <tr><td>Nested objects/arrays</td><td>Returns <code>NULL</code></td><td>Retrievable via <code>AS JSON</code>, or expandable with a further <code>OPENJSON</code> call</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>As a rule of thumb: reach for <code>JSON_VALUE</code> when a document is already one flat record and only a couple of fields are needed inline. Reach for <code>OPENJSON</code> the moment more than a couple of fields are needed as real typed columns, or the document actually contains an array that should become multiple rows.</p>
+  </section>
+
+  <section class="chapter-part" id="troubleshooting">
+    <div class="section-head">
+      <span class="section-num">8.8</span>
+      <h2>Troubleshooting and practical notes</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Syntax error right after <code>OPENJSON(...) WITH (...)</code></td>
+            <td>Missing table alias on the derived table</td>
+            <td>Add <code>AS</code> plus a name immediately after the closing parenthesis</td>
+          </tr>
+          <tr>
+            <td>A column always comes back <code>NULL</code></td>
+            <td>That path points to a nested object or array</td>
+            <td>Add <code>AS JSON</code> to that column's definition</td>
+          </tr>
+          <tr>
+            <td>Rows are missing, merged, or misaligned</td>
+            <td>The file's actual line endings don't match <code>ROWTERMINATOR</code></td>
+            <td>Try <code>0x0d0a</code> (CRLF) instead of <code>0x0a</code> (LF only)</td>
+          </tr>
+          <tr>
+            <td>A field's content looks corrupted</td>
+            <td>Rare: the chosen delimiter character actually appears in the data</td>
+            <td>Pick a different obscure control character, e.g. <code>0x1E</code> or <code>0x1F</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="worked-example">
+    <div class="section-head">
+      <span class="section-num">8.9</span>
+      <h2>Putting it together</h2>
+    </div>
+    <p class="lead">One pass, combining the disguise trick with a nested field, using the same external data source pointer set up in Chapter 7.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>full read, including a nested array field</span><span>T-SQL</span></div>
+      <pre><span class="cmt">-- Chapter 7's pointer, assumed already created:</span>
+<span class="cmt">-- CREATE EXTERNAL DATA SOURCE nyc_taxi_data WITH (LOCATION = '...')</span>
+
+SELECT *
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/payment_type_array.json'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    PARSER_VERSION = <span class="str">'1.0'</span>,
+    FIELDTERMINATOR = <span class="str">'0x0b'</span>,
+    FIELDQUOTE = <span class="str">'0x0b'</span>,
+    ROWTERMINATOR = <span class="str">'0x0a'</span>
+)
+WITH (
+    jsonDoc NVARCHAR(MAX)
+) AS pt
+CROSS APPLY OPENJSON(jsonDoc)
+WITH (
+    payment_type      SMALLINT,
+    payment_type_desc VARCHAR(50),
+    aliases           NVARCHAR(MAX) <span class="str">'$.aliases'</span> AS JSON
+) AS j;</pre>
+    </div>
+
+    <p>Three ideas from this chapter land in a single query here: the delimiter disguise gets the raw text in, the mandatory alias makes the expansion legal, and <code>AS JSON</code> keeps the nested <code>aliases</code> array from silently disappearing.</p>
+  </section>
+
+  <section class="closing">
+    <div class="closing-box">
+      <p class="lead">Every technique in this chapter exists to work around one gap: OPENROWSET has no idea what JSON is. It just reads text.</p>
+      <ul class="takeaways">
+        <li>There's no <code>FORMAT='JSON'</code>. Reading JSON means disguising it as delimited text first, then parsing that text separately.</li>
+        <li>Obscure control characters like <code>0x0B</code> and <code>0x0A</code> make safe delimiters precisely because real JSON content never contains them.</li>
+        <li><code>JSON_VALUE</code> pulls one scalar out of a document — <code>NULL</code> for a missing path, <code>NULL</code> for a path that resolves to an object or array.</li>
+        <li><code>OPENJSON</code> expands a document into a full rowset, and — like <code>OPENROWSET</code> — always needs its own table alias.</li>
+        <li>A nested field needs the <code>AS JSON</code> modifier, or it comes back <code>NULL</code> with no error to explain why.</li>
+        <li><code>OPENJSON</code> without a <code>WITH</code> clause still has a use: it returns every key, value, and type when the shape isn't known in advance.</li>
+      </ul>
+    </div>
+  </section>
+
+
+</main>
+
+
+</body>
+</html>

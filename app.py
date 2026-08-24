@@ -121,6 +121,10 @@ TOPICS = {
             {'id': 'delta-lake', 'title': 'Delta Lake', 'description': 'What is Delta Lake'},
             {'id': 'key-vault-db', 'title': 'Key Vault + Databricks',
              'description': 'Azure Key Vault + Databricks Secrets'},
+            {'id': 'querying-csv', 'title': 'Querying CSV',
+             'description': 'Querying CSV Files with OPENROWSET'},
+            {'id': 'querying-json', 'title': 'Querying JSON',
+             'description': 'Querying JSON Files with OPENROWSET'},
 
         ]
     },
@@ -191,6 +195,11 @@ def content_detail(topic_id, subtopic_id):
                 return render_template('azure/delta_lake.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
             elif subtopic_id == "key-vault-db":
                 return render_template('azure/key_vault.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
+
+            elif subtopic_id == "querying-csv":
+                return render_template('azure/querying_csv.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
+            elif subtopic_id == "querying-json":
+                return render_template('azure/querying_json.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
 
             return render_template('content.html', topic=topic, subtopic=subtopic, topic_id=topic_id)
 

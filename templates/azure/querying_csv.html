@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 7 — Querying CSV Files with OPENROWSET | Azure Data Engineering Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:            #0B1620;
+    --ink-soft:       #0F1E2C;
+    --layer-1:        #142838;
+    --layer-2:        #1C3549;
+    --hairline:       #26425A;
+    --parchment:      #EDE7D8;
+    --parchment-dim:  #A9B8C4;
+    --parchment-faint:#71889B;
+    --amber:          #CC9E4C;
+    --amber-soft:     #8A6C39;
+    --rust:           #B06B49;
+    --teal:           #6E9C97;
+    --good:           #7FA684;
+
+    --display: 'Fraunces', serif;
+    --body: 'Source Sans 3', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--ink);
+    color: var(--parchment);
+    font-family: var(--body);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  a{ color: var(--amber); }
+  ::selection{ background: var(--amber); color: var(--ink); }
+
+  :focus-visible{
+    outline: 2px solid var(--amber);
+    outline-offset: 3px;
+  }
+
+  .wrap{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  .strata-bg{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      repeating-linear-gradient(
+        180deg,
+        transparent 0px,
+        transparent 78px,
+        rgba(204,158,76,0.035) 78px,
+        rgba(204,158,76,0.035) 79px
+      );
+    pointer-events: none;
+  }
+
+  .rail{
+    border-bottom: 1px solid var(--hairline);
+    background: linear-gradient(180deg, var(--ink-soft), var(--ink));
+  }
+  .rail-inner{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 18px 28px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--parchment-faint);
+    text-transform: uppercase;
+    gap: 20px;
+  }
+  .rail-inner span.book{ color: var(--amber); }
+
+  .hero{
+    padding: 88px 0 64px;
+    position: relative;
+  }
+  .eyebrow{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 22px;
+  }
+  .eyebrow::before{
+    content:"";
+    width: 34px;
+    height: 1px;
+    background: var(--amber);
+  }
+  h1.title{
+    font-family: var(--display);
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-size: clamp(2.3rem, 5.4vw, 3.9rem);
+    line-height: 1.05;
+    margin: 0 0 20px;
+    color: var(--parchment);
+    letter-spacing: -0.01em;
+  }
+  .subtitle{
+    font-size: 1.13rem;
+    color: var(--parchment-dim);
+    max-width: 58ch;
+    margin: 0 0 44px;
+  }
+
+  /* ---------- signature: pipeline ---------- */
+  .pipeline{
+    display:flex;
+    align-items: stretch;
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .stage{
+    flex: 1;
+    padding: 24px 22px;
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--ink-soft);
+  }
+  .stage.active{ background: rgba(204,158,76,0.08); }
+  .stage-label{
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.68rem;
+    color: var(--parchment-faint);
+  }
+  .stage-name{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: var(--parchment);
+  }
+  .stage.active .stage-name{ color: var(--amber); }
+  .stage-note{ font-size: 0.83rem; color: var(--parchment-dim); }
+  .arrow{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width: 46px;
+    flex-shrink:0;
+    color: var(--amber);
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    background: var(--ink);
+  }
+  .pipeline-caption{
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--parchment-faint);
+    text-align:center;
+    margin: 16px 0 0;
+  }
+  @media (max-width: 640px){
+    .pipeline{ flex-direction:column; }
+    .arrow{ width:100%; height:32px; }
+  }
+
+  /* ---------- section scaffolding ---------- */
+  section.chapter-part{
+    padding: 60px 0;
+    border-top: 1px solid var(--hairline);
+  }
+  .section-head{
+    display:flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+  .section-num{
+    font-family: var(--mono);
+    color: var(--amber-soft);
+    font-size: 0.95rem;
+    flex-shrink:0;
+  }
+  h2{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 3.2vw, 1.95rem);
+    margin: 0;
+    color: var(--parchment);
+  }
+  h3{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.18rem;
+    color: var(--parchment);
+    margin: 34px 0 10px;
+  }
+  p{ color: var(--parchment-dim); margin: 0 0 16px; }
+  p.lead{ font-size: 1.06rem; color: var(--parchment); }
+  strong{ color: var(--parchment); font-weight: 600; }
+  code{
+    background: var(--layer-2);
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.87em;
+    color: var(--parchment);
+    white-space: nowrap;
+  }
+
+  /* ---------- cards ---------- */
+  .grid-cards{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    margin: 8px 0 6px;
+  }
+  .card{
+    background: var(--layer-1);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 19px 21px;
+  }
+  .card h4{
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--amber);
+    margin: 0 0 9px;
+  }
+  .card p{ margin:0; font-size: 0.94rem; }
+
+  /* ---------- diagram (monospace box) ---------- */
+  .diagram{
+    background: var(--ink-soft);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 22px 24px;
+    font-family: var(--mono);
+    font-size: 0.86rem;
+    margin: 22px 0;
+    overflow-x:auto;
+  }
+  .diagram .row-in{ color: var(--parchment-dim); }
+  .diagram .arrow-map{ color: var(--amber-soft); }
+  .diagram .col-name{ color: var(--amber); }
+  .diagram .comment{ color: var(--parchment-faint); }
+  .diagram .rule{ border-top: 1px dashed var(--hairline); margin: 12px 0; }
+
+  /* ---------- anatomy / feature rows ---------- */
+  .feature{
+    display:grid;
+    grid-template-columns: 190px 1fr;
+    gap: 22px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .feature:first-of-type{ padding-top: 6px; }
+  .feature:last-child{ border-bottom:none; }
+  .feature .name{
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--amber);
+  }
+  .feature p{ margin:0; font-size: 0.95rem; }
+  @media (max-width: 640px){
+    .feature{ grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  /* ---------- code block ---------- */
+  .code-block{
+    background: var(--ink-soft);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    margin: 22px 0;
+    overflow: hidden;
+  }
+  .code-head{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--parchment-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  pre{
+    margin:0;
+    padding: 19px 22px;
+    overflow-x:auto;
+    font-family: var(--mono);
+    font-size: 0.84rem;
+    line-height: 1.68;
+    color: var(--parchment-dim);
+  }
+  pre .kw{ color: var(--amber); }
+  pre .str{ color: var(--good); }
+  pre .cmt{ color: var(--parchment-faint); font-style: italic; }
+  pre .fn{ color: var(--parchment); }
+  pre .ph{ color: var(--teal); }
+
+  /* ---------- console / error output ---------- */
+  .console{
+    background: var(--ink-soft);
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--parchment-faint);
+    border-radius: 0 4px 4px 0;
+    padding: 14px 20px;
+    font-family: var(--mono);
+    font-size: 0.83rem;
+    margin: 18px 0;
+  }
+  .console.error{ border-left-color: var(--rust); }
+  .console .line{ color: var(--parchment-faint); margin-bottom: 4px; }
+  .console .line:last-child{ margin-bottom:0; }
+  .console.error .line.msg{ color: var(--rust); }
+
+  /* ---------- tables ---------- */
+  table{
+    width:100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 0.92rem;
+  }
+  th, td{
+    text-align:left;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: top;
+  }
+  th{
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--amber);
+    font-weight: 500;
+  }
+  td{ color: var(--parchment-dim); }
+  td:first-child{ color: var(--parchment); font-weight: 600; white-space: nowrap; }
+  tr:last-child td{ border-bottom:none; }
+  .table-wrap{ overflow-x: auto; }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-left: 3px solid var(--amber);
+    background: rgba(204,158,76,0.06);
+    padding: 17px 22px;
+    border-radius: 0 4px 4px 0;
+    margin: 22px 0;
+  }
+  .callout p{ margin:0; color: var(--parchment); font-size: 0.95rem; }
+  .callout p + p{ margin-top: 8px; }
+  .callout .label{
+    font-family: var(--mono);
+    font-size: 0.71rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    display:block;
+    margin-bottom: 8px;
+  }
+  .callout.bridge{ border-left-color: var(--teal); background: rgba(110,156,151,0.07); }
+  .callout.bridge .label{ color: var(--teal); }
+  .callout.warn{ border-left-color: var(--rust); background: rgba(176,107,73,0.07); }
+  .callout.warn .label{ color: var(--rust); }
+
+  /* ---------- closing ---------- */
+  .closing{ padding: 54px 0 40px; }
+  .closing-box{
+    background: var(--layer-1);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    padding: 32px 34px;
+  }
+  .closing-box p.lead{ margin-bottom: 16px; }
+  ul.takeaways{ list-style:none; margin: 16px 0 0; padding:0; }
+  ul.takeaways li{
+    position:relative;
+    padding-left: 22px;
+    margin-bottom: 12px;
+    color: var(--parchment-dim);
+    font-size: 0.95rem;
+  }
+  ul.takeaways li::before{
+    content:"—";
+    position:absolute;
+    left:0;
+    color: var(--amber);
+  }
+
+  .next-up{
+    padding: 0 0 60px;
+    text-align:center;
+  }
+  .next-up span{
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--parchment-faint);
+  }
+  .next-up strong{
+    display:block;
+    font-family: var(--display);
+    font-size: 1.1rem;
+    color: var(--amber);
+    margin-top: 6px;
+    font-weight: 600;
+  }
+
+  footer{
+    border-top: 1px solid var(--hairline);
+    padding: 26px 0 50px;
+    text-align:center;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--parchment-faint);
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 560px){
+    .hero{ padding: 56px 0 40px; }
+    section.chapter-part{ padding: 42px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="strata-bg" aria-hidden="true"></div>
+
+<div class="rail">
+  <div class="rail-inner">
+    <span><span class="book">Azure Data Engineering Notes</span> · Part III — Synapse Serverless SQL Pools</span>
+    <span>Chapter 7 / 9</span>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Chapter Seven</div>
+    <h1 class="title">Querying CSV Files with OPENROWSET</h1>
+    <p class="subtitle">How to read a delimited file straight out of a data lake, type it correctly, and avoid the handful of mistakes that account for nearly every error you'll hit along the way.</p>
+
+    <div class="pipeline" role="img" aria-label="Diagram: a CSV file in the data lake is read by OPENROWSET, which parses and types it into a query result, with no data ever copied">
+      <div class="stage">
+        <span class="stage-label">Data Lake</span>
+        <span class="stage-name">zone_lookup.csv</span>
+        <span class="stage-note">Sits in ADLS Gen2, untouched</span>
+      </div>
+      <div class="arrow">→</div>
+      <div class="stage active">
+        <span class="stage-label">Serverless SQL</span>
+        <span class="stage-name">OPENROWSET</span>
+        <span class="stage-note">Parses and types, on demand</span>
+      </div>
+      <div class="arrow">→</div>
+      <div class="stage">
+        <span class="stage-label">Result</span>
+        <span class="stage-name">Rowset</span>
+        <span class="stage-note">Exists only for this query</span>
+      </div>
+    </div>
+    <p class="pipeline-caption">Nothing here is copied or staged. Run the same query twice and the file is read twice.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="chapter-part" id="serverless-model">
+    <div class="section-head">
+      <span class="section-num">7.1</span>
+      <h2>What "serverless" actually means</h2>
+    </div>
+    <p class="lead">A serverless SQL pool is a query engine with no database attached to it. It doesn't hold your data — it reaches out to wherever your data already lives, reads it, and hands back a result.</p>
+    <p>That single fact explains almost everything about how this chapter's syntax is shaped: why every query needs a schema spelled out by hand, why nothing you run ever "inserts" anywhere, and why the billing model looks nothing like a traditional database.</p>
+
+    <div class="grid-cards">
+      <div class="card">
+        <h4>No ingestion</h4>
+        <p>Nothing is loaded into the pool. Every query reads the source file directly from storage at execution time.</p>
+      </div>
+      <div class="card">
+        <h4>Billed by data scanned</h4>
+        <p>Cost is a function of how much data a query reads, not reserved compute sitting idle around the clock.</p>
+      </div>
+      <div class="card">
+        <h4>Always current</h4>
+        <p>There's no sync step and no staleness window. A query reflects exactly what's in the file right now.</p>
+      </div>
+      <div class="card">
+        <h4>Compute on demand</h4>
+        <p>Resources are provisioned per query and released afterward, rather than an always-on cluster waiting for work.</p>
+      </div>
+    </div>
+
+    <h3>Serverless vs. dedicated, at a glance</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>&nbsp;</th><th>Serverless SQL pool</th><th>Dedicated SQL pool</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Where data lives</td><td>Stays in the data lake</td><td>Physically loaded into the pool</td></tr>
+          <tr><td>Compute</td><td>Spun up per query</td><td>Always-on, provisioned capacity</td></tr>
+          <tr><td>Billing</td><td>Per TB of data processed</td><td>Per hour of reserved compute</td></tr>
+          <tr><td>Typical use</td><td>Ad hoc exploration, data lake queries, external tables</td><td>Large-scale, high-concurrency production warehousing</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout bridge">
+      <span class="label">Postgres bridge</span>
+      <p>The closest mental model from the Postgres world is a foreign data wrapper — <code>CREATE SERVER</code> plus a foreign table. You're registering a connection to external data and querying it live, not importing it. <code>CREATE EXTERNAL DATA SOURCE</code>, covered later in this chapter, is functionally the same idea as <code>CREATE SERVER</code>.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="anatomy">
+    <div class="section-head">
+      <span class="section-num">7.2</span>
+      <h2>Anatomy of OPENROWSET</h2>
+    </div>
+    <p class="lead"><code>OPENROWSET</code> is the function that does the actual reading. Everything else in this chapter is really just options passed into it.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>a minimal, complete example</span><span>T-SQL</span></div>
+      <pre>SELECT <span class="kw">TOP</span> 100 *
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/zone_lookup.csv'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    PARSER_VERSION = <span class="str">'2.0'</span>,
+    HEADER_ROW = TRUE
+)
+WITH (
+    LocationID    SMALLINT,
+    Borough       VARCHAR(15),
+    Zone          VARCHAR(50),
+    service_zone  VARCHAR(15)
+) AS [r];</pre>
+    </div>
+
+    <div class="feature">
+      <div class="name">BULK</div>
+      <p>The path to the file. Either a full <code>abfss://</code> URI, or — as here — a path relative to a registered <code>DATA_SOURCE</code>. This is the only truly mandatory argument.</p>
+    </div>
+    <div class="feature">
+      <div class="name">DATA_SOURCE</div>
+      <p>Optional. Resolves the relative <code>BULK</code> path against a named pointer created ahead of time with <code>CREATE EXTERNAL DATA SOURCE</code>. Covered in full in section 7.8.</p>
+    </div>
+    <div class="feature">
+      <div class="name">FORMAT</div>
+      <p>Which parser to invoke: <code>CSV</code>, <code>PARQUET</code>, or <code>DELTA</code>. There is no dedicated TSV, pipe-delimited, or fixed-width format — those are all still <code>CSV</code> with different delimiter options, covered in section 7.7.</p>
+    </div>
+    <div class="feature">
+      <div class="name">PARSER_VERSION</div>
+      <p><code>1.0</code> is the older engine and cannot infer schema at all. <code>2.0</code> is faster and the current default recommendation, but for CSV it still generally needs an explicit schema — see section 7.3.</p>
+    </div>
+    <div class="feature">
+      <div class="name">WITH ( ... )</div>
+      <p>The explicit schema: column names, types, and — for headerless files — ordinal positions. Required for CSV in almost every real scenario.</p>
+    </div>
+    <div class="feature">
+      <div class="name">AS [r]</div>
+      <p>A mandatory alias. <code>OPENROWSET</code> returns a derived table, and T-SQL requires every derived table to be named before its columns can be referenced — the same rule Postgres applies to subqueries in a <code>FROM</code> clause.</p>
+    </div>
+
+    <div class="callout bridge">
+      <span class="label">Postgres bridge</span>
+      <p>The square brackets around <code>[r]</code> are T-SQL's identifier-quoting syntax — the equivalent of double quotes around an identifier in Postgres. They're only strictly necessary around reserved words or names with special characters; <code>AS r</code> without brackets works identically here.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="explicit-schema">
+    <div class="section-head">
+      <span class="section-num">7.3</span>
+      <h2>Why CSV can't describe itself</h2>
+    </div>
+    <p class="lead">A CSV file is plain text. It has no embedded metadata — no column names guaranteed, no types, nothing a parser can inspect ahead of time the way it can with a self-describing format like Parquet.</p>
+    <p>Leave out the <code>WITH</code> clause on a CSV read, and this is what you get back:</p>
+
+    <div class="console error">
+      <div class="line">Started executing query</div>
+      <div class="line msg">Schema cannot be determined from data files for file format 'CSV 1.0'. Please use WITH clause of OPENROWSET to define schema.</div>
+    </div>
+
+    <p>The fix is always the same: add a <code>WITH</code> clause naming every column and its type. This is not optional cleanup — for CSV, it's the normal, expected way to write this query.</p>
+
+    <h3>Sizing string columns deliberately</h3>
+    <p>Guessing a <code>VARCHAR</code> length and getting it wrong doesn't fail quietly — the engine refuses to silently truncate data:</p>
+
+    <div class="console error">
+      <div class="line">Started executing query</div>
+      <div class="line msg">String or binary data would be truncated while reading column of type 'VARCHAR'. Check ANSI_WARNINGS option. Underlying data description: file '&lt;path&gt;', column 'Zone'. Truncated value: '"Allerton/Pelham Gardens"'.</div>
+    </div>
+
+    <p>The right habit is to check the real maximum length before committing to a size, rather than guess and re-run:</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>checking real column widths first</span><span>T-SQL</span></div>
+      <pre>SELECT
+    MAX(LEN(LocationID))   AS len_location_id,
+    MAX(LEN(Borough))      AS len_borough,
+    MAX(LEN(Zone))         AS len_zone,
+    MAX(LEN(service_zone)) AS len_service_zone
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/zone_lookup.csv'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    PARSER_VERSION = <span class="str">'2.0'</span>,
+    HEADER_ROW = TRUE
+) AS [r];</pre>
+    </div>
+
+    <p>Run that once, read the widest value per column, then size <code>VARCHAR</code> to comfortably cover it — with a little headroom for future rows you haven't seen yet.</p>
+
+    <h3>Validating a schema without a full scan</h3>
+    <p>There's a second tool worth knowing for this: <code>sp_describe_first_result_set</code>. It takes a query as a string and returns the schema that query <em>would</em> produce, without actually running it against the data.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>dry-run schema validation</span><span>T-SQL</span></div>
+      <pre>EXEC sp_describe_first_result_set N<span class="str">'
+SELECT *
+FROM OPENROWSET(
+    BULK ''raw/zone_lookup.csv'',
+    DATA_SOURCE = ''nyc_taxi_data'',
+    FORMAT = ''CSV'',
+    PARSER_VERSION = ''2.0'',
+    HEADER_ROW = TRUE
+)
+WITH (
+    LocationID SMALLINT,
+    Borough    VARCHAR(15),
+    zone       VARCHAR(15),
+    service_zone VARCHAR(15)
+) AS [r]'</span>;</pre>
+    </div>
+
+    <p>Two things are worth noticing in that call. The leading <code>N</code> before the string marks it as Unicode text (<code>NVARCHAR</code>) rather than plain <code>VARCHAR</code> — the procedure's parameter specifically expects Unicode, so the prefix isn't optional style, it's what the signature requires. And every single quote that belongs to the inner query is doubled (<code>''</code>) rather than single, because the whole statement is itself one big string literal — a single unescaped quote would end that literal early.</p>
+
+    <div class="callout bridge">
+      <span class="label">Postgres bridge</span>
+      <p>Postgres doesn't have a direct one-shot equivalent to <code>sp_describe_first_result_set</code>. The closest habits are <code>EXPLAIN</code> or querying <code>information_schema</code> — useful, but neither hands you a column list for an arbitrary ad hoc query the way this does.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="types">
+    <div class="section-head">
+      <span class="section-num">7.4</span>
+      <h2>VARCHAR vs. NVARCHAR</h2>
+    </div>
+    <p class="lead">Both store text. The difference is which characters they can safely hold, and how much storage each character costs.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>&nbsp;</th><th>VARCHAR</th><th>NVARCHAR</th></tr></thead>
+        <tbody>
+          <tr><td>Character support</td><td>Limited to the column's collation</td><td>Full Unicode</td></tr>
+          <tr><td>Storage per character</td><td>1 byte</td><td>2 bytes</td></tr>
+          <tr><td>Typical use</td><td>Codes, IDs, plain Latin/English text</td><td>Free text, names, anything of uncertain origin</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>A field like <code>service_zone</code>, drawn from a small fixed set of English labels, is a safe fit for <code>VARCHAR</code>. Raw JSON text, user-entered free text, or anything that might carry a name in a non-Latin script belongs in <code>NVARCHAR</code> — and when the length is genuinely unpredictable, <code>NVARCHAR(MAX)</code> removes the guessing entirely.</p>
+
+    <div class="callout bridge">
+      <span class="label">Postgres bridge</span>
+      <p>This split doesn't really exist in Postgres. <code>text</code> and <code>varchar</code> there are Unicode-aware by default, given a UTF-8 database encoding — which is nearly universal today. The <code>VARCHAR</code> / <code>NVARCHAR</code> distinction is a T-SQL artifact from an era before UTF-8 was assumed everywhere.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="collation">
+    <div class="section-head">
+      <span class="section-num">7.5</span>
+      <h2>Collation and character encoding</h2>
+    </div>
+    <p class="lead">Collation is the rule set that governs how text is compared and sorted — case sensitivity, accent sensitivity, and character encoding all live inside one named setting.</p>
+
+    <p>Synapse serverless pools consistently lean on one specific collation for reading data lake files:</p>
+
+    <div class="diagram">
+      <div class="row-in">Latin1_General_100_CI_AI_SC_UTF8</div>
+      <div class="rule"></div>
+      <div><span class="col-name">Latin1_General</span> <span class="comment">— base locale: English and most Western European languages</span></div>
+      <div><span class="col-name">100</span> <span class="comment">— rule version; newer than the unversioned default</span></div>
+      <div><span class="col-name">CI</span> <span class="comment">— case-insensitive: "Bronx" equals "bronx"</span></div>
+      <div><span class="col-name">AI</span> <span class="comment">— accent-insensitive: "cafe" equals "café"</span></div>
+      <div><span class="col-name">SC</span> <span class="comment">— supplementary characters supported (emoji, rare scripts)</span></div>
+      <div><span class="col-name">UTF8</span> <span class="comment">— UTF-8 storage encoding</span></div>
+    </div>
+
+    <p>The <code>UTF8</code> segment is the one that matters most for this chapter's purposes. Data lake files are typically UTF-8 encoded, and without a UTF-8-aware collation, non-ASCII characters can come back garbled or compare incorrectly.</p>
+
+    <h3>Setting it once, at the database level</h3>
+    <p>Rather than repeat <code>COLLATE</code> on every <code>VARCHAR</code> column in every query, set it once on the database, and every column created afterward inherits it:</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>database-level default</span><span>T-SQL</span></div>
+      <pre>CREATE DATABASE nyc_taxi_discovery;
+
+<span class="kw">USE</span> nyc_taxi_discovery;
+
+ALTER DATABASE nyc_taxi_discovery
+    COLLATE Latin1_General_100_CI_AI_SC_UTF8;</pre>
+    </div>
+
+    <p>A per-column override is still available when a specific field needs different rules than the database default:</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>per-column override</span><span>T-SQL</span></div>
+      <pre>WITH (
+    LocationID    SMALLINT,
+    Borough       VARCHAR(15) COLLATE Latin1_General_100_CI_AI_SC_UTF8,
+    zone          VARCHAR(15) COLLATE Latin1_General_100_CI_AI_SC_UTF8,
+    service_zone  VARCHAR(15) COLLATE Latin1_General_100_CI_AI_SC_UTF8
+) AS [r]</pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="label">Common mistake</span>
+      <p><code>COLLATE</code> only applies to character types. Attaching it to a numeric column — <code>LocationID SMALLINT COLLATE ...</code> — is rejected outright, because collation governs text comparison and a number has nothing for that rule set to act on.</p>
+    </div>
+
+    <div class="callout bridge">
+      <span class="label">Postgres bridge</span>
+      <p>Postgres has the same underlying concept, but it's usually invisible — a locale and encoding (commonly <code>en_US.UTF-8</code>) get set once at <code>initdb</code> or <code>CREATE DATABASE</code> time and are rarely touched again. T-SQL surfaces this idea far more explicitly, letting it be overridden per database, per column, or even per expression.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="headerless">
+    <div class="section-head">
+      <span class="section-num">7.6</span>
+      <h2>Headerless files and ordinal position</h2>
+    </div>
+    <p class="lead">Not every file has a header row. Without column names to match against, the only way to identify a field is by counting its position — its ordinal — left to right, starting at 1.</p>
+
+    <p>Set <code>HEADER_ROW = FALSE</code> (or omit it — <code>FALSE</code> is the default), and unnamed columns fall back to a generic <code>C1</code>, <code>C2</code>, <code>C3</code>... naming scheme:</p>
+
+    <div class="diagram">
+      <div class="comment">a row in taxi_zone_no_header.csv:</div>
+      <div class="row-in">Bronx,Allerton/Pelham Gardens,Boro Zone</div>
+      <div class="rule"></div>
+      <div><span class="col-name">C1</span> <span class="arrow-map">→</span> Bronx</div>
+      <div><span class="col-name">C2</span> <span class="arrow-map">→</span> Allerton/Pelham Gardens</div>
+      <div><span class="col-name">C3</span> <span class="arrow-map">→</span> Boro Zone</div>
+    </div>
+
+    <p>To assign real names and types, attach the ordinal position directly after each column's type in the <code>WITH</code> clause:</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>mapping by position</span><span>T-SQL</span></div>
+      <pre>SELECT *
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/zone_lookup_no_header.csv'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    PARSER_VERSION = <span class="str">'2.0'</span>
+)
+WITH (
+    Borough VARCHAR(15) 2,
+    Zone    VARCHAR(50) 3
+) AS [r];</pre>
+    </div>
+
+    <p>Position 1 was skipped entirely here — mapping every ordinal position isn't required, only the ones actually needed. Notice, too, that the size mistake from section 7.3 is easy to repeat: <code>Zone VARCHAR(15)</code> is too narrow for <code>"Allerton/Pelham Gardens"</code> and throws the same truncation error, regardless of whether the column was matched by name or by position.</p>
+
+    <div class="callout">
+      <span class="label">Worth remembering</span>
+      <p>When the layout of a headerless file is unfamiliar, run <code>SELECT TOP 5 *</code> against it first, with no <code>WITH</code> clause. Seeing the raw <code>C1</code>, <code>C2</code>, <code>C3</code>... columns and their contents makes the ordinal mapping obvious before committing to real names and types.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="delimiters">
+    <div class="section-head">
+      <span class="section-num">7.7</span>
+      <h2>Delimiters, quoting, and escaping</h2>
+    </div>
+    <p class="lead">"CSV" is really shorthand for delimited text in general. The character that separates fields, the character that wraps a field, and the character that escapes a literal occurrence of either are all independently configurable.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Option</th><th>Default</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>FIELDTERMINATOR</td><td><code>,</code></td><td>The character that separates one field from the next</td></tr>
+          <tr><td>FIELDQUOTE</td><td><code>"</code></td><td>The character that wraps a field so it can safely contain the terminator</td></tr>
+          <tr><td>ESCAPECHAR</td><td>none</td><td>The character that marks the next character as literal, not structural</td></tr>
+          <tr><td>ROWTERMINATOR</td><td>engine default</td><td>The character (or sequence) that marks the end of a row</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Reading a tab-separated file</h3>
+    <p>There is no separate <code>FORMAT='TSV'</code>. A TSV file is a CSV file that happens to use a tab as its delimiter, so the fix is simply to override <code>FIELDTERMINATOR</code>:</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>tab-delimited, still FORMAT='CSV'</span><span>T-SQL</span></div>
+      <pre>SELECT <span class="kw">TOP</span> 100 *
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/trip_type.tsv'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    HEADER_ROW = TRUE,
+    PARSER_VERSION = <span class="str">'2.0'</span>,
+    FIELDTERMINATOR = <span class="str">'\t'</span>
+)
+WITH (
+    trip_type   SMALLINT,
+    description VARCHAR(50)
+) AS [r];</pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="label">Common mistake</span>
+      <p>The option is spelled <code>FIELDTERMINATOR</code> — no underscore — even though <code>HEADER_ROW</code> and <code>PARSER_VERSION</code>, sitting right next to it, both use one. Writing <code>FIELD_TERMINATOR</code> fails with a plain syntax error, not a helpful hint about the name:</p>
+    </div>
+
+    <div class="console error">
+      <div class="line">Started executing query</div>
+      <div class="line msg">Incorrect syntax near 'FIELD_TERMINATOR'.</div>
+    </div>
+
+    <h3>Escaping a quote character embedded in a field</h3>
+    <p>A field that legitimately contains the quote character has to mark it as literal, or the parser will treat it as the end of the field:</p>
+
+    <div class="diagram">
+      <div class="comment">raw line inside notes_escaped.csv:</div>
+      <div class="row-in">"She said \"stop\" loudly"</div>
+      <div class="rule"></div>
+      <div class="comment">parsed field value, once ESCAPECHAR is set correctly:</div>
+      <div class="row-in">She said "stop" loudly</div>
+    </div>
+
+    <pre style="background:var(--ink-soft);border:1px solid var(--hairline);border-radius:4px;padding:16px 20px;font-family:var(--mono);font-size:0.84rem;color:var(--parchment-dim);margin:18px 0;">ESCAPECHAR = <span class="str">'\\'</span></pre>
+
+    <p>The doubled backslash isn't T-SQL escaping anything — it's the literal value being passed to the option, telling the parser: <em>the character used to escape things in this file is a single backslash.</em> Without it set correctly, an embedded quote reads as the field's closing quote and the row breaks apart or throws a size-related error.</p>
+  </section>
+
+  <section class="chapter-part" id="external-data-source">
+    <div class="section-head">
+      <span class="section-num">7.8</span>
+      <h2>Reusable pointers: CREATE EXTERNAL DATA SOURCE</h2>
+    </div>
+    <p class="lead">Typing the full <code>abfss://</code> path in every single query gets old fast, and it's fragile — one storage account rename and every query breaks. A named data source solves both problems.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>registering the pointer</span><span>T-SQL</span></div>
+      <pre>CREATE EXTERNAL DATA SOURCE nyc_taxi_data
+WITH (
+    LOCATION = <span class="str">'abfss://nyc-taxi-data@&lt;storage_account&gt;.dfs.core.windows.net/'</span>
+);</pre>
+    </div>
+
+    <p>This is metadata only — a saved alias, nothing more. No bytes move, and no copy is made anywhere. Every query that references it still reads the live file from storage at execution time, exactly as it would with a full inline path.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>&nbsp;</th><th>Without a data source</th><th>With a data source</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>BULK path</td>
+            <td><code>'abfss://nyc-taxi-data@&lt;storage_account&gt;.dfs.core.windows.net/raw/zone_lookup.csv'</code></td>
+            <td><code>'raw/zone_lookup.csv'</code></td>
+          </tr>
+          <tr>
+            <td>Extra argument</td>
+            <td>none</td>
+            <td><code>DATA_SOURCE = 'nyc_taxi_data'</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Private storage: adding a credential</h3>
+    <p>Public containers need nothing further. A private, secured storage account needs a scoped credential attached to the data source — typically the same managed identity used elsewhere in a Unity Catalog or ADLS setup:</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>data source with a managed identity credential</span><span>T-SQL</span></div>
+      <pre>CREATE DATABASE SCOPED CREDENTIAL nyc_taxi_credential
+WITH (
+    IDENTITY = <span class="str">'Managed Identity'</span>
+);
+
+CREATE EXTERNAL DATA SOURCE nyc_taxi_data
+WITH (
+    LOCATION = <span class="str">'abfss://nyc-taxi-data@&lt;storage_account&gt;.dfs.core.windows.net/'</span>,
+    CREDENTIAL = nyc_taxi_credential
+);</pre>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="troubleshooting">
+    <div class="section-head">
+      <span class="section-num">7.9</span>
+      <h2>Troubleshooting reference</h2>
+    </div>
+    <p class="lead">Nearly every error this chapter's syntax produces falls into one of a handful of categories.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Message</th><th>Cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>File cannot be opened because it does not exist</td>
+            <td>Wrong path, a typo, or the source file has moved or been retired</td>
+            <td>Verify the exact path and container name; list the container's contents if unsure</td>
+          </tr>
+          <tr>
+            <td>Schema cannot be determined from data files</td>
+            <td>CSV has no embedded schema, and no <code>WITH</code> clause was supplied</td>
+            <td>Add an explicit <code>WITH</code> clause naming every column and type</td>
+          </tr>
+          <tr>
+            <td>String or binary data would be truncated</td>
+            <td>A <code>VARCHAR</code> length is smaller than the widest actual value</td>
+            <td>Check real widths with <code>MAX(LEN(...))</code>, then resize with headroom</td>
+          </tr>
+          <tr>
+            <td>Incorrect syntax near '...'</td>
+            <td>An option name is misspelled or missing/extra underscore</td>
+            <td>Check exact spelling — <code>FIELDTERMINATOR</code> has none, <code>HEADER_ROW</code> does</td>
+          </tr>
+          <tr>
+            <td>Collation cannot be applied to this data type</td>
+            <td><code>COLLATE</code> attached to a numeric or other non-character column</td>
+            <td>Remove <code>COLLATE</code> from non-text columns; it only applies to character types</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="worked-example">
+    <div class="section-head">
+      <span class="section-num">7.10</span>
+      <h2>Putting it together</h2>
+    </div>
+    <p class="lead">A single end-to-end pass: register the pointer once, then read two different files against it — one with a header, one without.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>step 1 — register the data source, once</span><span>T-SQL</span></div>
+      <pre>CREATE EXTERNAL DATA SOURCE nyc_taxi_data
+WITH (
+    LOCATION = <span class="str">'abfss://nyc-taxi-data@&lt;storage_account&gt;.dfs.core.windows.net/'</span>
+);</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span>step 2 — a header CSV, typed and collated</span><span>T-SQL</span></div>
+      <pre>SELECT <span class="kw">TOP</span> 100 *
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/zone_lookup.csv'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    PARSER_VERSION = <span class="str">'2.0'</span>,
+    HEADER_ROW = TRUE
+)
+WITH (
+    LocationID    SMALLINT,
+    Borough       VARCHAR(15)  COLLATE Latin1_General_100_CI_AI_SC_UTF8,
+    Zone          VARCHAR(50)  COLLATE Latin1_General_100_CI_AI_SC_UTF8,
+    service_zone  VARCHAR(15)  COLLATE Latin1_General_100_CI_AI_SC_UTF8
+) AS [zones];</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span>step 3 — a headerless, tab-delimited file, by ordinal position</span><span>T-SQL</span></div>
+      <pre>SELECT <span class="kw">TOP</span> 100 *
+FROM OPENROWSET(
+    BULK <span class="ph">'raw/trip_type_no_header.tsv'</span>,
+    DATA_SOURCE = <span class="str">'nyc_taxi_data'</span>,
+    FORMAT = <span class="str">'CSV'</span>,
+    PARSER_VERSION = <span class="str">'2.0'</span>,
+    FIELDTERMINATOR = <span class="str">'\t'</span>
+)
+WITH (
+    trip_type   SMALLINT     1,
+    description VARCHAR(50)  2
+) AS [trip_types];</pre>
+    </div>
+
+    <p>Same pointer, same underlying engine, two different shapes of source file — one leaning on a header row and named columns, the other reconstructed entirely from position and an explicit delimiter override.</p>
+  </section>
+
+  <section class="closing">
+    <div class="closing-box">
+      <p class="lead">Every technique in this chapter follows from one fact: OPENROWSET reads a file live, and a plain-text file can't describe itself.</p>
+      <ul class="takeaways">
+        <li><code>OPENROWSET</code> is a live read, not an import — nothing is ever copied into the pool.</li>
+        <li>CSV has no embedded schema. A <code>WITH</code> clause is the normal, expected way to query one, not an edge case.</li>
+        <li>Size string columns from a real measurement — <code>MAX(LEN(...))</code> or <code>sp_describe_first_result_set</code> — rather than a guess.</li>
+        <li>Collation controls comparison rules and character encoding together; set it once at the database level rather than repeating it per column.</li>
+        <li>Exact option spelling matters and isn't consistent: <code>FIELDTERMINATOR</code> has no underscore, <code>HEADER_ROW</code> and <code>PARSER_VERSION</code> do.</li>
+        <li>An external data source is a named pointer, nothing more — it shortens queries, it doesn't move data.</li>
+      </ul>
+    </div>
+  </section>
+
+
+</main>
+
+</body>
+</html>

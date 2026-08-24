@@ -1,324 +1,551 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Lecture notes on securely using Azure Key Vault-backed secret scopes with Azure Databricks and dbutils.secrets.get().">
-  <title>Azure Key Vault and Databricks Secrets</title>
-  <style>
-    :root {
-      --bg: #f6f8fb;
-      --paper: #ffffff;
-      --ink: #1f2937;
-      --muted: #5f6b7a;
-      --accent: #0078d4;
-      --accent-dark: #005a9e;
-      --line: #d8e0e8;
-      --code-bg: #111827;
-      --code-ink: #e5eef8;
-      --note-bg: #eef7ff;
-      --warn-bg: #fff8e6;
-      --success-bg: #eefbf3;
-      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: var(--ink);
-      background: var(--bg);
-      line-height: 1.7;
-    }
-    .page {
-      width: min(980px, calc(100% - 32px));
-      margin: 40px auto;
-      background: var(--paper);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-    header {
-      padding: 56px 64px 36px;
-      background: linear-gradient(135deg, #0078d4 0%, #50a7e8 100%);
-      color: white;
-    }
-    header .eyebrow {
-      margin: 0 0 10px;
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-weight: 700;
-      opacity: 0.9;
-    }
-    header h1 {
-      margin: 0;
-      font-size: clamp(2rem, 4vw, 3.4rem);
-      line-height: 1.1;
-    }
-    header p {
-      max-width: 760px;
-      margin: 18px 0 0;
-      font-size: 1.08rem;
-      opacity: 0.95;
-    }
-    main { padding: 46px 64px 60px; }
-    h2 {
-      margin-top: 2.3rem;
-      margin-bottom: 0.7rem;
-      color: var(--accent-dark);
-      font-size: 1.65rem;
-      line-height: 1.25;
-    }
-    h3 {
-      margin-top: 1.6rem;
-      margin-bottom: 0.5rem;
-      font-size: 1.15rem;
-    }
-    p { margin: 0.8rem 0; }
-    .lead {
-      font-size: 1.08rem;
-      color: var(--muted);
-    }
-    .flow {
-      margin: 26px 0;
-      padding: 24px;
-      background: #f7fbff;
-      border: 1px solid #cfe5f7;
-      border-radius: 14px;
-      text-align: center;
-      font-weight: 650;
-      line-height: 1.9;
-    }
-    .flow .arrow {
-      color: var(--accent);
-      font-size: 1.25rem;
-    }
-    .callout {
-      margin: 20px 0;
-      padding: 16px 18px;
-      border-radius: 12px;
-      border-left: 5px solid var(--accent);
-      background: var(--note-bg);
-    }
-    .callout.warning {
-      background: var(--warn-bg);
-      border-left-color: #d97706;
-    }
-    .callout.success {
-      background: var(--success-bg);
-      border-left-color: #14804a;
-    }
-    pre {
-      margin: 16px 0 22px;
-      padding: 18px 20px;
-      overflow-x: auto;
-      border-radius: 12px;
-      background: var(--code-bg);
-      color: var(--code-ink);
-      font: 0.93rem/1.55 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-    }
-    code {
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-    }
-    p code, li code, td code {
-      padding: 0.08rem 0.34rem;
-      border-radius: 5px;
-      background: #edf2f7;
-      color: #0f4c81;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 18px 0 24px;
-      overflow: hidden;
-      border-radius: 10px;
-      border: 1px solid var(--line);
-    }
-    th, td {
-      padding: 12px 14px;
-      text-align: left;
-      vertical-align: top;
-      border-bottom: 1px solid var(--line);
-    }
-    th {
-      background: #f1f6fa;
-      color: var(--accent-dark);
-    }
-    tr:last-child td { border-bottom: 0; }
-    a {
-      color: var(--accent-dark);
-      text-decoration-thickness: 1px;
-      text-underline-offset: 2px;
-    }
-    .toc {
-      margin: 8px 0 28px;
-      padding: 18px 22px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: #fafcff;
-    }
-    .toc strong { color: var(--accent-dark); }
-    .toc ul { margin: 8px 0 0; padding-left: 20px; }
-    footer {
-      padding: 24px 64px 38px;
-      color: var(--muted);
-      font-size: 0.92rem;
-      border-top: 1px solid var(--line);
-      background: #fbfcfe;
-    }
-    @media (max-width: 720px) {
-      .page {
-        width: 100%;
-        margin: 0;
-        border-radius: 0;
-      }
-      header, main, footer {
-        padding-left: 22px;
-        padding-right: 22px;
-      }
-      header { padding-top: 36px; }
-    }
-    @media print {
-      body { background: white; }
-      .page {
-        width: 100%;
-        margin: 0;
-        box-shadow: none;
-        border-radius: 0;
-      }
-      a { color: black; text-decoration: none; }
-      pre { white-space: pre-wrap; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Lecture notes on securely using Azure Key Vault-backed secret scopes with Azure Databricks and dbutils.secrets.get().">
+<title>Azure Key Vault and Databricks Secrets | Azure Data Engineering Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:            #0B1620;
+    --ink-soft:       #0F1E2C;
+    --layer-1:        #142838;
+    --layer-2:        #1C3549;
+    --hairline:       #26425A;
+    --parchment:      #EDE7D8;
+    --parchment-dim:  #A9B8C4;
+    --parchment-faint:#71889B;
+    --amber:          #CC9E4C;
+    --amber-soft:     #8A6C39;
+    --rust:           #B06B49;
+    --info:           #6E9C97;
+    --good:           #7FA684;
+
+    --display: 'Fraunces', serif;
+    --body: 'Source Sans 3', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--ink);
+    color: var(--parchment);
+    font-family: var(--body);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  a{ color: var(--amber); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  ::selection{ background: var(--amber); color: var(--ink); }
+
+  :focus-visible{
+    outline: 2px solid var(--amber);
+    outline-offset: 3px;
+  }
+
+  .wrap{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  .strata-bg{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      repeating-linear-gradient(
+        180deg,
+        transparent 0px,
+        transparent 78px,
+        rgba(204,158,76,0.035) 78px,
+        rgba(204,158,76,0.035) 79px
+      );
+    pointer-events: none;
+  }
+
+  .rail{
+    border-bottom: 1px solid var(--hairline);
+    background: linear-gradient(180deg, var(--ink-soft), var(--ink));
+  }
+  .rail-inner{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 18px 28px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--parchment-faint);
+    text-transform: uppercase;
+    gap: 20px;
+  }
+  .rail-inner span.book{ color: var(--amber); }
+
+  .hero{
+    padding: 88px 0 56px;
+    position: relative;
+  }
+  .eyebrow{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 22px;
+  }
+  .eyebrow::before{
+    content:"";
+    width: 34px;
+    height: 1px;
+    background: var(--amber);
+  }
+  h1.title{
+    font-family: var(--display);
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-size: clamp(2.1rem, 5vw, 3.5rem);
+    line-height: 1.08;
+    margin: 0 0 20px;
+    color: var(--parchment);
+    letter-spacing: -0.01em;
+  }
+  .subtitle{
+    font-size: 1.13rem;
+    color: var(--parchment-dim);
+    max-width: 60ch;
+    margin: 0 0 44px;
+  }
+
+  /* ---------- signature: pipeline ---------- */
+  .pipeline{
+    display:flex;
+    align-items: stretch;
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .stage{
+    flex: 1;
+    padding: 24px 22px;
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--ink-soft);
+  }
+  .stage.active{ background: rgba(204,158,76,0.08); }
+  .stage-label{
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.68rem;
+    color: var(--parchment-faint);
+  }
+  .stage-name{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.08rem;
+    color: var(--parchment);
+  }
+  .stage.active .stage-name{ color: var(--amber); }
+  .stage-note{ font-size: 0.82rem; color: var(--parchment-dim); }
+  .arrow{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width: 46px;
+    flex-shrink:0;
+    color: var(--amber);
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    background: var(--ink);
+  }
+  .pipeline-caption{
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--parchment-faint);
+    text-align:center;
+    margin: 16px 0 0;
+  }
+  @media (max-width: 640px){
+    .pipeline{ flex-direction:column; }
+    .arrow{ width:100%; height:32px; }
+  }
+
+  /* ---------- table of contents ---------- */
+  .toc{
+    background: var(--layer-1);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    padding: 24px 28px;
+    margin: 8px 0 4px;
+  }
+  .toc-label{
+    display:block;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+  .toc ul{
+    margin:0;
+    padding-left: 20px;
+    columns: 2;
+    column-gap: 32px;
+  }
+  .toc li{
+    margin-bottom: 8px;
+    font-size: 0.92rem;
+    break-inside: avoid;
+  }
+  .toc a{ color: var(--parchment-dim); text-decoration:none; }
+  .toc a:hover{ color: var(--amber); }
+  @media (max-width: 560px){
+    .toc ul{ columns: 1; }
+  }
+
+  /* ---------- section scaffolding ---------- */
+  section.chapter-part{
+    padding: 56px 0;
+    border-top: 1px solid var(--hairline);
+  }
+  .section-head{ margin-bottom: 26px; }
+  h2{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(1.4rem, 3vw, 1.85rem);
+    margin: 0;
+    color: var(--parchment);
+  }
+  h3{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: var(--parchment);
+    margin: 30px 0 10px;
+  }
+  p{ color: var(--parchment-dim); margin: 0 0 16px; }
+  p.lead{ font-size: 1.05rem; color: var(--parchment); }
+  strong{ color: var(--parchment); font-weight: 600; }
+  code{
+    background: var(--layer-2);
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.87em;
+    color: var(--parchment);
+  }
+
+  main ul:not(.toc ul){
+    margin: 4px 0 18px;
+    padding-left: 22px;
+    color: var(--parchment-dim);
+  }
+  main ul:not(.toc ul) li{ margin-bottom: 8px; }
+  main ul:not(.toc ul) li::marker{ color: var(--amber); }
+
+  /* ---------- diagram (monospace box) ---------- */
+  .diagram{
+    background: var(--ink-soft);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 22px 24px;
+    font-family: var(--mono);
+    font-size: 0.86rem;
+    margin: 22px 0;
+    overflow-x:auto;
+  }
+  .diagram div{ margin-bottom: 4px; }
+  .diagram div:last-child{ margin-bottom: 0; }
+  .diagram .row-in{ color: var(--parchment); }
+  .diagram .arrow-map{ color: var(--amber-soft); margin-right: 6px; }
+  .diagram .col-name{ color: var(--amber); }
+  .diagram .comment{ color: var(--parchment-faint); }
+
+  /* ---------- code block ---------- */
+  .code-block{
+    background: var(--ink-soft);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    margin: 22px 0;
+    overflow: hidden;
+  }
+  .code-head{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--parchment-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  pre{
+    margin:0;
+    padding: 19px 22px;
+    overflow-x:auto;
+    font-family: var(--mono);
+    font-size: 0.84rem;
+    line-height: 1.68;
+    color: var(--parchment-dim);
+  }
+  pre .str{ color: var(--good); }
+
+  /* ---------- tables ---------- */
+  table{
+    width:100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 0.92rem;
+  }
+  th, td{
+    text-align:left;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: top;
+  }
+  th{
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--amber);
+    font-weight: 500;
+  }
+  td{ color: var(--parchment-dim); }
+  td:first-child{ color: var(--parchment); font-weight: 600; white-space: nowrap; }
+  tr:last-child td{ border-bottom:none; }
+  .table-wrap{ overflow-x: auto; }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-left: 3px solid var(--amber);
+    background: rgba(204,158,76,0.06);
+    padding: 17px 22px;
+    border-radius: 0 4px 4px 0;
+    margin: 22px 0;
+  }
+  .callout p{ margin:0; color: var(--parchment); font-size: 0.95rem; }
+  .callout .label{
+    font-family: var(--mono);
+    font-size: 0.71rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    display:block;
+    margin-bottom: 8px;
+  }
+  .callout.info{ border-left-color: var(--info); background: rgba(110,156,151,0.07); }
+  .callout.info .label{ color: var(--info); }
+  .callout.warn{ border-left-color: var(--rust); background: rgba(176,107,73,0.07); }
+  .callout.warn .label{ color: var(--rust); }
+
+  footer{
+    border-top: 1px solid var(--hairline);
+    padding: 30px 0 54px;
+    text-align:center;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--parchment-faint);
+    letter-spacing: 0.02em;
+  }
+  footer p{ max-width: 60ch; margin: 0 auto; color: inherit; }
+
+  @media (max-width: 560px){
+    .hero{ padding: 56px 0 40px; }
+    section.chapter-part{ padding: 40px 0; }
+  }
+</style>
 </head>
 <body>
-  <article class="page">
-    <header>
-      <p class="eyebrow">Azure Data Engineering Lecture Notes</p>
-      <h1>Azure Key Vault + Databricks Secrets</h1>
-      <p>How to store a secret securely in Azure Key Vault, expose it to Azure Databricks through a Key Vault-backed secret scope, and retrieve it with <code>dbutils.secrets.get()</code>.</p>
-    </header>
 
-    <main>
-      <div class="toc">
-        <strong>Contents</strong>
-        <ul>
-          <li><a href="#overview">Architecture overview</a></li>
-          <li><a href="#create-key-vault">Create the Key Vault</a></li>
-          <li><a href="#permission-model">Configure the permission model</a></li>
-          <li><a href="#vault-values">Get the Key Vault values</a></li>
-          <li><a href="#secret-scope">Create a Databricks secret scope</a></li>
-          <li><a href="#verify">Verify the scope and secret</a></li>
-          <li><a href="#retrieve">Retrieve the secret</a></li>
-          <li><a href="#use-cases">Common use cases</a></li>
-          <li><a href="#references">References</a></li>
-        </ul>
+<div class="strata-bg" aria-hidden="true"></div>
+
+<div class="rail">
+  <div class="rail-inner">
+    <span><span class="book">Azure Data Engineering Notes</span> · Part II — Databricks &amp; Unity Catalog</span>
+    <span>Reference Guide</span>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Security &amp; Secrets Management</div>
+    <h1 class="title">Azure Key Vault + Databricks Secrets</h1>
+    <p class="subtitle">How to store a secret securely in Azure Key Vault, expose it to Azure Databricks through a Key Vault-backed secret scope, and retrieve it with <code>dbutils.secrets.get()</code>.</p>
+
+    <div class="pipeline" role="img" aria-label="Diagram: Azure Key Vault holds the secret, a Databricks secret scope references the vault, and a notebook retrieves the secret through dbutils">
+      <div class="stage">
+        <span class="stage-label">Secret Storage</span>
+        <span class="stage-name">Azure Key Vault</span>
+        <span class="stage-note">Holds the actual secret value</span>
       </div>
+      <div class="arrow">→</div>
+      <div class="stage active">
+        <span class="stage-label">Bridge</span>
+        <span class="stage-name">Secret Scope</span>
+        <span class="stage-note">References the vault, holds no value itself</span>
+      </div>
+      <div class="arrow">→</div>
+      <div class="stage">
+        <span class="stage-label">Notebook</span>
+        <span class="stage-name">dbutils.secrets.get()</span>
+        <span class="stage-note">Retrieves the secret at runtime</span>
+      </div>
+    </div>
+    <p class="pipeline-caption">The secret itself never leaves Key Vault — Databricks only ever holds a reference to it.</p>
+  </div>
+</header>
 
-      <section id="overview">
-        <h2>Architecture Overview</h2>
-        <p class="lead">The goal is to keep sensitive credentials out of notebooks and source control while still allowing Databricks workloads to access them when needed.</p>
+<main class="wrap">
 
-        <div class="flow">
-          Azure Key Vault<br>
-          <span class="arrow">↓</span><br>
-          Secret: <code>my-client-secret</code><br>
-          <span class="arrow">↓</span><br>
-          Databricks Key Vault-backed Secret Scope<br>
-          <span class="arrow">↓</span><br>
-          Scope: <code>azure-keyvault-scope</code><br>
-          <span class="arrow">↓</span><br>
-          Databricks Notebook<br>
-          <span class="arrow">↓</span><br>
-          <code>dbutils.secrets.get(...)</code>
-        </div>
+  <nav class="toc" aria-label="Table of contents">
+    <span class="toc-label">Contents</span>
+    <ul>
+      <li><a href="#overview">Architecture overview</a></li>
+      <li><a href="#create-key-vault">Create the Key Vault</a></li>
+      <li><a href="#permission-model">Configure the permission model</a></li>
+      <li><a href="#vault-values">Get the Key Vault values</a></li>
+      <li><a href="#secret-scope">Create a Databricks secret scope</a></li>
+      <li><a href="#verify">Verify the scope and secret</a></li>
+      <li><a href="#retrieve">Retrieve the secret</a></li>
+      <li><a href="#use-cases">Common use cases</a></li>
+      <li><a href="#references">References</a></li>
+    </ul>
+  </nav>
 
-        <div class="callout success">
-          <strong>Key idea:</strong> Azure Key Vault stores the actual secret. Databricks uses a secret scope to reference the vault, and notebook code retrieves the secret by scope name and key.
-        </div>
-      </section>
+  <section class="chapter-part" id="overview">
+    <div class="section-head"><h2>Architecture Overview</h2></div>
+    <p class="lead">The goal is to keep sensitive credentials out of notebooks and source control while still allowing Databricks workloads to access them when needed.</p>
 
-      <section id="create-key-vault">
-        <h2>1. Create the Azure Key Vault</h2>
-        <p>Using Azure CLI:</p>
+    <div class="diagram">
+      <div class="row-in">Azure Key Vault</div>
+      <div class="comment">↓</div>
+      <div class="row-in">Secret: <span class="col-name">my-client-secret</span></div>
+      <div class="comment">↓</div>
+      <div class="row-in">Databricks Key Vault-backed Secret Scope</div>
+      <div class="comment">↓</div>
+      <div class="row-in">Scope: <span class="col-name">azure-keyvault-scope</span></div>
+      <div class="comment">↓</div>
+      <div class="row-in">Databricks Notebook</div>
+      <div class="comment">↓</div>
+      <div class="row-in">dbutils.secrets.get(...)</div>
+    </div>
 
-        <pre><code>az keyvault create \
+    <div class="callout info">
+      <span class="label">Key idea</span>
+      <p>Azure Key Vault stores the actual secret. Databricks uses a secret scope to reference the vault, and notebook code retrieves the secret by scope name and key.</p>
+    </div>
+  </section>
+
+  <section class="chapter-part" id="create-key-vault">
+    <div class="section-head"><h2>1. Create the Azure Key Vault</h2></div>
+    <p>Using Azure CLI:</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>create the vault</span><span>Azure CLI</span></div>
+      <pre>az keyvault create \
   --name my-data-keyvault \
   --resource-group my-resource-group \
-  --location centralus</code></pre>
+  --location centralus</pre>
+    </div>
 
-        <p>Then add a secret:</p>
+    <p>Then add a secret:</p>
 
-        <pre><code>az keyvault secret set \
+    <div class="code-block">
+      <div class="code-head"><span>store the secret value</span><span>Azure CLI</span></div>
+      <pre>az keyvault secret set \
   --vault-name my-data-keyvault \
   --name my-client-secret \
-  --value "YOUR_SECRET_VALUE"</code></pre>
+  --value <span class="str">"YOUR_SECRET_VALUE"</span></pre>
+    </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Example</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Key Vault</td>
-              <td><code>my-data-keyvault</code></td>
-            </tr>
-            <tr>
-              <td>Secret name</td>
-              <td><code>my-client-secret</code></td>
-            </tr>
-            <tr>
-              <td>Secret value</td>
-              <td><code>YOUR_SECRET_VALUE</code></td>
-            </tr>
-          </tbody>
-        </table>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Item</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>Key Vault</td><td><code>my-data-keyvault</code></td></tr>
+          <tr><td>Secret name</td><td><code>my-client-secret</code></td></tr>
+          <tr><td>Secret value</td><td><code>YOUR_SECRET_VALUE</code></td></tr>
+        </tbody>
+      </table>
+    </div>
 
-        <div class="callout warning">
-          <strong>Security note:</strong> Never put the real secret value in Git, a notebook, screenshots, documentation, or other public content.
-        </div>
-      </section>
+    <div class="callout warn">
+      <span class="label">Security note</span>
+      <p>Never put the real secret value in Git, a notebook, screenshots, documentation, or other public content.</p>
+    </div>
+  </section>
 
-      <section id="permission-model">
-        <h2>2. Configure the Key Vault Permission Model</h2>
-        <p>For the traditional Azure Key Vault-backed Databricks secret scope, configure the Key Vault to use the <strong>Vault access policy</strong> permission model.</p>
+  <section class="chapter-part" id="permission-model">
+    <div class="section-head"><h2>2. Configure the Key Vault Permission Model</h2></div>
+    <p>For the traditional Azure Key Vault-backed Databricks secret scope, configure the Key Vault to use the <strong>Vault access policy</strong> permission model.</p>
 
-        <pre><code>Azure Portal
-→ Key Vault
-→ Access configuration
-→ Permission model
-→ Vault access policy</code></pre>
-      </section>
+    <div class="diagram">
+      <div class="row-in">Azure Portal</div>
+      <div><span class="arrow-map">→</span>Key Vault</div>
+      <div><span class="arrow-map">→</span>Access configuration</div>
+      <div><span class="arrow-map">→</span>Permission model</div>
+      <div><span class="arrow-map">→</span><span class="col-name">Vault access policy</span></div>
+    </div>
+  </section>
 
-      <section id="vault-values">
-        <h2>3. Get Two Values from Key Vault</h2>
-        <p>Open the Key Vault in Azure Portal and go to <strong>Properties</strong>.</p>
+  <section class="chapter-part" id="vault-values">
+    <div class="section-head"><h2>3. Get Two Values from Key Vault</h2></div>
+    <p>Open the Key Vault in Azure Portal and go to <strong>Properties</strong>.</p>
 
-        <h3>Vault URI / DNS Name</h3>
-        <pre><code>https://my-data-keyvault.vault.azure.net/</code></pre>
+    <h3>Vault URI / DNS Name</h3>
+    <div class="code-block">
+      <div class="code-head"><span>copy this value</span><span>Vault URI</span></div>
+      <pre>https://my-data-keyvault.vault.azure.net/</pre>
+    </div>
 
-        <h3>Resource ID</h3>
-        <pre><code>/subscriptions/.../resourceGroups/my-resource-group/providers/Microsoft.KeyVault/vaults/my-data-keyvault</code></pre>
-      </section>
+    <h3>Resource ID</h3>
+    <div class="code-block">
+      <div class="code-head"><span>copy this value</span><span>Resource ID</span></div>
+      <pre>/subscriptions/.../resourceGroups/my-resource-group/providers/Microsoft.KeyVault/vaults/my-data-keyvault</pre>
+    </div>
+  </section>
 
-      <section id="secret-scope">
-        <h2>4. Create a Databricks Secret Scope</h2>
+  <section class="chapter-part" id="secret-scope">
+    <div class="section-head"><h2>4. Create a Databricks Secret Scope</h2></div>
+    <p>In the Azure Databricks workspace, open:</p>
 
-        <p>In the Azure Databricks workspace, open:</p>
+    <div class="code-block">
+      <div class="code-head"><span>open in your workspace</span><span>URL</span></div>
+      <pre>https://&lt;your-databricks-workspace-url&gt;#secrets/createScope</pre>
+    </div>
 
-        <pre><code>https://&lt;your-databricks-workspace-url&gt;#secrets/createScope</code></pre>
+    <div class="callout">
+      <span class="label">Important</span>
+      <p>The <code>createScope</code> portion is case-sensitive.</p>
+    </div>
 
-        <div class="callout">
-          <strong>Important:</strong> The <code>createScope</code> portion is case-sensitive.
-        </div>
+    <p>Enter values similar to the following:</p>
 
-        <p>Enter values similar to the following:</p>
-
-        <pre><code>Scope Name:
+    <div class="code-block">
+      <div class="code-head"><span>fill in these fields</span><span>Databricks</span></div>
+      <pre>Scope Name:
 azure-keyvault-scope
 
 Manage Principal:
@@ -328,99 +555,116 @@ Azure Key Vault DNS Name:
 https://my-data-keyvault.vault.azure.net/
 
 Resource ID:
-/subscriptions/.../providers/Microsoft.KeyVault/vaults/my-data-keyvault</code></pre>
+/subscriptions/.../providers/Microsoft.KeyVault/vaults/my-data-keyvault</pre>
+    </div>
 
-        <p>Then select <strong>Create</strong>.</p>
-      </section>
+    <p>Then select <strong>Create</strong>.</p>
+  </section>
 
-      <section id="verify">
-        <h2>5. Verify the Secret Scope in Databricks</h2>
+  <section class="chapter-part" id="verify">
+    <div class="section-head"><h2>5. Verify the Secret Scope in Databricks</h2></div>
 
-        <p>List the secret scopes available to the notebook:</p>
+    <p>List the secret scopes available to the notebook:</p>
+    <div class="code-block">
+      <div class="code-head"><span>list available scopes</span><span>Python</span></div>
+      <pre>dbutils.secrets.listScopes()</pre>
+    </div>
 
-        <pre><code>dbutils.secrets.listScopes()</code></pre>
+    <p>You should see a scope such as:</p>
+    <div class="code-block">
+      <div class="code-head"><span>expected result</span><span>Output</span></div>
+      <pre>azure-keyvault-scope</pre>
+    </div>
 
-        <p>You should see a scope such as:</p>
+    <p>Then list the secrets available through that scope:</p>
+    <div class="code-block">
+      <div class="code-head"><span>list secrets in this scope</span><span>Python</span></div>
+      <pre>dbutils.secrets.list(<span class="str">"azure-keyvault-scope"</span>)</pre>
+    </div>
 
-        <pre><code>azure-keyvault-scope</code></pre>
+    <p>This lists the secret names or metadata, not their plaintext values.</p>
 
-        <p>Then list the secrets available through that scope:</p>
+    <p>For this example, you should find:</p>
+    <div class="code-block">
+      <div class="code-head"><span>expected result</span><span>Output</span></div>
+      <pre>my-client-secret</pre>
+    </div>
+  </section>
 
-        <pre><code>dbutils.secrets.list("azure-keyvault-scope")</code></pre>
+  <section class="chapter-part" id="retrieve">
+    <div class="section-head"><h2>6. Retrieve the Secret in a Databricks Notebook</h2></div>
 
-        <p>This lists the secret names or metadata, not their plaintext values.</p>
+    <p>Use <code>dbutils.secrets.get()</code>:</p>
+    <div class="code-block">
+      <div class="code-head"><span>retrieve the secret</span><span>Python</span></div>
+      <pre>client_secret = dbutils.secrets.get(
+    scope=<span class="str">"azure-keyvault-scope"</span>,
+    key=<span class="str">"my-client-secret"</span>
+)</pre>
+    </div>
 
-        <p>For this example, you should find:</p>
+    <p>The mapping is simple:</p>
+    <div class="code-block">
+      <div class="code-head"><span>parameter mapping</span><span>Reference</span></div>
+      <pre>scope = Databricks secret scope name
+key   = Azure Key Vault secret name</pre>
+    </div>
 
-        <pre><code>my-client-secret</code></pre>
-      </section>
-
-      <section id="retrieve">
-        <h2>6. Retrieve the Secret in a Databricks Notebook</h2>
-
-        <p>Use <code>dbutils.secrets.get()</code>:</p>
-
-        <pre><code>client_secret = dbutils.secrets.get(
-    scope="azure-keyvault-scope",
-    key="my-client-secret"
-)</code></pre>
-
-        <p>The mapping is simple:</p>
-
-        <pre><code>scope = Databricks secret scope name
-key   = Azure Key Vault secret name</code></pre>
-
-        <p>A slightly larger example:</p>
-
-        <pre><code>client_id = "your-client-id"
+    <p>A slightly larger example:</p>
+    <div class="code-block">
+      <div class="code-head"><span>using both values together</span><span>Python</span></div>
+      <pre>client_id = <span class="str">"your-client-id"</span>
 
 client_secret = dbutils.secrets.get(
-    scope="azure-keyvault-scope",
-    key="my-client-secret"
-)</code></pre>
+    scope=<span class="str">"azure-keyvault-scope"</span>,
+    key=<span class="str">"my-client-secret"</span>
+)</pre>
+    </div>
 
-        <div class="callout warning">
-          <strong>Do not print secrets.</strong> Avoid commands such as <code>print(client_secret)</code>. Databricks may redact secret values in some notebook output, but redaction should not be treated as a complete security boundary.
-        </div>
-      </section>
+    <div class="callout warn">
+      <span class="label">Do not print secrets</span>
+      <p>Avoid commands such as <code>print(client_secret)</code>. Databricks may redact secret values in some notebook output, but redaction should not be treated as a complete security boundary.</p>
+    </div>
+  </section>
 
-      <section id="use-cases">
-        <h2>Common Use Cases</h2>
-        <p>This pattern is useful when Databricks code needs credentials for:</p>
-        <ul>
-          <li>Azure Data Lake Storage (ADLS)</li>
-          <li>Azure SQL databases and data warehouses</li>
-          <li>REST APIs</li>
-          <li>Service principals</li>
-          <li>JDBC connections</li>
-          <li>Other systems that require passwords, access tokens, or keys</li>
-        </ul>
+  <section class="chapter-part" id="use-cases">
+    <div class="section-head"><h2>Common Use Cases</h2></div>
+    <p>This pattern is useful when Databricks code needs credentials for:</p>
+    <ul>
+      <li>Azure Data Lake Storage (ADLS)</li>
+      <li>Azure SQL databases and data warehouses</li>
+      <li>REST APIs</li>
+      <li>Service principals</li>
+      <li>JDBC connections</li>
+      <li>Other systems that require passwords, access tokens, or keys</li>
+    </ul>
 
-        <h3>End-to-End Flow to Remember</h3>
-        <pre><code>Actual secret
-      ↓
-Azure Key Vault
-      ↓
-Key Vault-backed Databricks secret scope
-      ↓
-dbutils.secrets.get()
-      ↓
-PySpark / Python notebook code</code></pre>
-      </section>
+    <h3>End-to-End Flow to Remember</h3>
+    <div class="diagram">
+      <div class="row-in">Actual secret</div>
+      <div class="comment">↓</div>
+      <div class="row-in">Azure Key Vault</div>
+      <div class="comment">↓</div>
+      <div class="row-in">Key Vault-backed Databricks secret scope</div>
+      <div class="comment">↓</div>
+      <div class="row-in">dbutils.secrets.get()</div>
+      <div class="comment">↓</div>
+      <div class="row-in">PySpark / Python notebook code</div>
+    </div>
+  </section>
 
-      <section id="references">
-        <h2>References</h2>
-        <ul>
-          <li><a href="https://learn.microsoft.com/en-us/azure/databricks/security/secrets/" target="_blank" rel="noopener">Microsoft Learn — Secret management in Azure Databricks</a></li>
-          <li><a href="https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-utils" target="_blank" rel="noopener">Microsoft Learn — Databricks Utilities (dbutils) reference</a></li>
-          <li><a href="https://learn.microsoft.com/en-us/azure/databricks/security/secrets/example-secret-workflow" target="_blank" rel="noopener">Microsoft Learn — Tutorial: Create and use a Databricks secret</a></li>
-        </ul>
-      </section>
-    </main>
+  <section class="chapter-part" id="references">
+    <div class="section-head"><h2>References</h2></div>
+    <ul>
+      <li><a href="https://learn.microsoft.com/en-us/azure/databricks/security/secrets/" target="_blank" rel="noopener">Microsoft Learn — Secret management in Azure Databricks</a></li>
+      <li><a href="https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-utils" target="_blank" rel="noopener">Microsoft Learn — Databricks Utilities (dbutils) reference</a></li>
+      <li><a href="https://learn.microsoft.com/en-us/azure/databricks/security/secrets/example-secret-workflow" target="_blank" rel="noopener">Microsoft Learn — Tutorial: Create and use a Databricks secret</a></li>
+    </ul>
+  </section>
 
-    <footer>
-      This file is self-contained: the HTML and CSS are included in a single document, with no personal information or user-specific identifiers.
-    </footer>
-  </article>
+</main>
+
+
+
 </body>
 </html>
